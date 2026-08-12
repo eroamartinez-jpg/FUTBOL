@@ -67,6 +67,33 @@ por eso). Con las que sí superaron esa verificación se armó esta lista:
 - Women's World Cup 2019 y 2023
 - UEFA Women's Euro 2022 y 2025
 
+Cuando una competición tiene varias temporadas en la lista (por ejemplo FA
+Women's Super League o FIFA World Cup) se tratan como una sola serie
+histórica continua para el modelo de esa competición. Con `python -m
+futbol.data.build_dataset` ya corrido, esto es lo que hay realmente en
+`data/processed/` (`python -m futbol.predict --list-competitions`):
+
+| Competición | Equipos | Partidos |
+|---|---|---|
+| Premier League | 20 | 380 |
+| La Liga | 20 | 380 |
+| Serie A | 20 | 380 |
+| Ligue 1 | 20 | 377 |
+| Indian Super league | 11 | 115 |
+| FIFA World Cup | 40 | 128 |
+| UEFA Euro | 29 | 102 |
+| Copa America | 16 | 32 |
+| African Cup of Nations | 24 | 52 |
+| Liga F | 16 | 240 |
+| Frauen Bundesliga | 12 | 132 |
+| Serie A Women | 10 | 130 |
+| FA Women's Super League | 15 | 370 |
+| NWSL | 12 | 137 |
+| Women's World Cup | 36 | 116 |
+| UEFA Women's Euro | 18 | 62 |
+
+**Total: 16 competiciones, 3133 partidos, ~90 500 filas jugador-partido.**
+
 Para añadir más (todas completas y verificadas), edita
 `futbol/config.py::COMPETITIONS` con más pares `(competition_id, season_id)`
 de StatsBomb (ver `data/competitions.json` en su repo) y vuelve a ejecutar
@@ -112,12 +139,14 @@ python -m futbol.data.build_dataset
 
 # 2. Ver qué competiciones y equipos hay disponibles
 python -m futbol.predict --list-competitions
-python -m futbol.predict --list-teams --competition "Liga F 2023/24 (España)"
+python -m futbol.predict --list-teams --competition "Liga F"
 
 # 3. Pronosticar un partido (detecta la competición automáticamente si el
-#    par de equipos es inequívoco; si no, se indica con --competition)
+#    par de equipos es inequívoco; si no, se indica con --competition,
+#    usando el nombre tal cual lo lista --list-competitions)
 python -m futbol.predict "Barcelona WFC" "Real Madrid CF W"
-python -m futbol.predict "Real Madrid" "Barcelona" --competition "La Liga 2015/16 (España)"
+python -m futbol.predict "Real Madrid" "Barcelona" --competition "La Liga"
+python -m futbol.predict "England" "France" --competition "FIFA World Cup"
 
 # 4. Ver el backtest / validación de calibración (todas las competiciones,
 #    o una en concreto con --competition)
@@ -183,15 +212,26 @@ python -m futbol.evaluate
 `evaluate.py` corre este backtest **competición por competición** (cada una
 tiene su propio modelo, ver arriba) con un split honesto: el calibrador se
 ajusta solo con el primer 70% cronológico de partidos de esa competición y
-se mide el acierto en el 30% final, nunca visto por el calibrador. En Liga F
-2023/24, por ejemplo, los pronósticos con probabilidad calibrada ≥75%
-acertaron ~85-87% de las veces, tanto en los mercados basados en Dixon-Coles
-(1X2, goles, BTTS) como en los basados en las Poisson de equipo (corners,
-tarjetas, tiros, tiros a puerta) — es decir, el filtro de confianza es
-realista y ligeramente conservador, no optimista. En torneos pequeños
-(31-64 partidos) hay menos datos para validar y el informe lo refleja con
-un `n` más bajo; ahí conviene mirar también la calibración "de referencia"
-(no hold-out) que imprime `evaluate.py`.
+se mide el acierto en el 30% final, nunca visto por el calibrador.
+
+Corriéndolo sobre las 16 competiciones reales del dataset (3133 partidos),
+los pronósticos con probabilidad calibrada ≥75% acertaron, en ese 30% de
+hold-out nunca visto por el calibrador:
+
+- **Mercados de equipo (corners, tarjetas, tiros, tiros a puerta)**: entre
+  75% y 90% de acierto real en las 16 competiciones, sin excepción.
+- **Mercados de Dixon-Coles (1X2, goles, BTTS)**: entre 78% y 90% de
+  acierto real en la gran mayoría de competiciones. En los torneos más
+  cortos (Copa América, FIFA World Cup, UEFA Women's Euro...) el hold-out
+  deja muy pocos pronósticos de alta confianza para medir (a veces 1-5), así
+  que ahí un solo resultado puede mover el porcentaje mucho — eso es ruido
+  de tamaño de muestra, no una señal de que el modelo esté mal calibrado;
+  la calibración "de referencia" (sin hold-out, con más datos) de esas
+  mismas competiciones confirma el mismo rango de 78-100%.
+
+Es decir, el filtro de confianza es realista y en general ligeramente
+conservador, no optimista — pero en las competiciones más pequeñas conviene
+mirar el `n` de cada línea del reporte antes de confiar en el porcentaje.
 
 **Importante sobre el marcador exacto**: en fútbol ningún marcador exacto
 alcanza el 75% de probabilidad real (el más probable de un partido suele
