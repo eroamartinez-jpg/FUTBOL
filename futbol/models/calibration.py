@@ -81,7 +81,17 @@ def walk_forward_backtest(matches_df: pd.DataFrame, burn_in: int | None = None,
         train_ids = set(train["match_id"])
         train_long = long_df.reset_index()
         train_long = train_long[train_long["match_id"].isin(train_ids)]
-        poisson_models = {stat: TeamPoissonMarket(stat).fit(train_long) for stat in STAT_TARGETS}
+
+        # En competiciones pequeñas (torneos de selecciones), los primeros
+        # bloques pueden no tener ningún equipo con historial suficiente
+        # (MIN_TEAM_HISTORY) para las features de forma: sin filas válidas
+        # no hay nada que ajustar, así que se salta la parte Poisson de
+        # ese bloque (el 1X2/goles/BTTS de Dixon-Coles sí se evalúa igual).
+        valid_rows = train_long.dropna(subset=[f"roll_{s}_for" for s in STAT_TARGETS])
+        poisson_models = (
+            {stat: TeamPoissonMarket(stat).fit(train_long) for stat in STAT_TARGETS}
+            if len(valid_rows) >= 10 else None
+        )
 
         for _, m in block.iterrows():
             home, away, mid = m["home_team"], m["away_team"], m["match_id"]
@@ -101,6 +111,9 @@ def walk_forward_backtest(matches_df: pd.DataFrame, burn_in: int | None = None,
                 probs = markets["total_goals"][line]
                 actual_side = "over" if actual_total > line else "under"
                 _record_best(records, "dixon_coles", f"goals_{line}", mid, probs, actual_side)
+
+            if poisson_models is None:
+                continue
 
             try:
                 home_row = long_df.loc[(mid, home)]

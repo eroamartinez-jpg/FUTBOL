@@ -103,12 +103,18 @@ def _build_one(competition: str, matches_df: pd.DataFrame, players_df: pd.DataFr
     )
 
 
-def build_all_pipelines(run_backtest: bool = True) -> dict[str, CompetitionPipeline]:
-    """Devuelve {nombre_competición: CompetitionPipeline}, una por cada
-    competición del dataset con suficientes partidos y equipos.
+def build_all_pipelines(run_backtest: bool = True,
+                         competitions: list[str] | None = None) -> dict[str, CompetitionPipeline]:
+    """Devuelve {nombre_competición: CompetitionPipeline}.
+
+    Si `competitions` se indica, solo se construyen esas (evita pagar el
+    coste del backtest walk-forward de las 16 competiciones cuando solo se
+    va a predecir en una).
     """
     matches_df, players_df = load_processed_data()
     matches_df["date"] = pd.to_datetime(matches_df["date"])
+    if competitions is not None:
+        matches_df = matches_df[matches_df["competition"].isin(competitions)]
 
     pipelines: dict[str, CompetitionPipeline] = {}
     for competition, comp_matches in matches_df.groupby("competition"):

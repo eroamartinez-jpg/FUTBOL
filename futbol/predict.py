@@ -228,15 +228,15 @@ def main() -> None:
     args = parser.parse_args()
 
     list_only = args.list_competitions or args.list_teams
-    pipelines = build_all_pipelines(run_backtest=not args.no_backtest and not list_only)
+    if list_only:
+        pipelines = build_all_pipelines(run_backtest=False)
 
-    if args.list_competitions:
-        print("Competiciones disponibles:")
-        for name, p in sorted(pipelines.items()):
-            print(f"  - {name}  ({len(p.dixon_coles.teams_)} equipos, {len(p.matches_df)} partidos)")
-        sys.exit(0)
+        if args.list_competitions:
+            print("Competiciones disponibles:")
+            for name, p in sorted(pipelines.items()):
+                print(f"  - {name}  ({len(p.dixon_coles.teams_)} equipos, {len(p.matches_df)} partidos)")
+            sys.exit(0)
 
-    if args.list_teams:
         comps = [args.competition] if args.competition else sorted(pipelines)
         for comp in comps:
             if comp not in pipelines:
@@ -254,7 +254,16 @@ def main() -> None:
         sys.exit(1)
 
     try:
-        pipeline = resolve_pipeline(pipelines, args.home_team, args.away_team, args.competition)
+        # Fase 1 (rápida, sin backtest): solo para resolver a qué
+        # competición pertenecen los equipos pedidos.
+        light_pipelines = build_all_pipelines(run_backtest=False)
+        target = resolve_pipeline(light_pipelines, args.home_team, args.away_team, args.competition)
+
+        # Fase 2: reconstruye SOLO esa competición, esta vez con el
+        # backtest de calibración (evita pagarlo en las otras 15).
+        pipelines = build_all_pipelines(run_backtest=not args.no_backtest,
+                                         competitions=[target.competition])
+        pipeline = pipelines[target.competition]
         report = predict_match(pipeline, args.home_team, args.away_team)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)

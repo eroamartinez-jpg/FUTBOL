@@ -65,6 +65,14 @@ class DixonColes:
         # x0: attack=0, defense=0, home_adv=0.2, rho=0, mu(base rate)=0.3
         x0 = np.concatenate([np.zeros(n), np.zeros(n), [0.2, 0.0, 0.3]])
 
+        # Regularización L2 adaptativa: con pocos partidos por equipo (típico
+        # de un torneo corto de selecciones) hay casi tantos parámetros
+        # (2*n_equipos+3) como observaciones, y el ajuste sin penalizar
+        # diverge (attack/defense se van a +-inf, exp() desborda). Cuanto
+        # peor sea esa proporción, más fuerte la penalización.
+        n_params = 2 * n + 3
+        alpha = max(1e-3, 0.05 * n_params / max(len(df), 1))
+
         def unpack(x):
             attack = x[:n]
             defense = x[n:2 * n]
@@ -73,10 +81,10 @@ class DixonColes:
 
         def neg_log_lik(x):
             attack, defense, home_adv, rho, mu = unpack(x)
-            lam = np.exp(mu + attack[home_idx] - defense[away_idx] + home_adv)
-            m = np.exp(mu + attack[away_idx] - defense[home_idx])
-            lam = np.clip(lam, 1e-6, None)
-            m = np.clip(m, 1e-6, None)
+            log_lam = np.clip(mu + attack[home_idx] - defense[away_idx] + home_adv, -15, 15)
+            log_m = np.clip(mu + attack[away_idx] - defense[home_idx], -15, 15)
+            lam = np.exp(log_lam)
+            m = np.exp(log_m)
 
             ll = poisson.logpmf(hg, lam) + poisson.logpmf(ag, m)
             tau_vals = np.array([
@@ -85,8 +93,7 @@ class DixonColes:
             ])
             tau_vals = np.clip(tau_vals, 1e-10, None)
             ll = ll + np.log(tau_vals)
-            # penalización leve L2 para estabilidad numérica (identificabilidad)
-            penalty = 1e-3 * (np.sum(attack ** 2) + np.sum(defense ** 2))
+            penalty = alpha * (np.sum(attack ** 2) + np.sum(defense ** 2))
             return -np.sum(weights * ll) + penalty
 
         # restricción de identificabilidad: media de ataques = 0
@@ -112,8 +119,8 @@ class DixonColes:
         d_h = self.defense_.get(home_team, 0.0)
         a_a = self.attack_.get(away_team, 0.0)
         d_a = self.defense_.get(away_team, 0.0)
-        lam = math.exp(self.mu_ + a_h - d_a + self.home_adv_)
-        mu = math.exp(self.mu_ + a_a - d_h)
+        lam = math.exp(min(self.mu_ + a_h - d_a + self.home_adv_, 15))
+        mu = math.exp(min(self.mu_ + a_a - d_h, 15))
         return lam, mu
 
     def scoreline_matrix(self, home_team: str, away_team: str) -> np.ndarray:
