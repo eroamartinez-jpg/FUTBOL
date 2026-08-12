@@ -3,5 +3,6 @@ __pycache__/
 *.pyc
 data/raw/
 data/processed/
+web/model_data.json
 *.egg-info/
 .pytest_cache/
