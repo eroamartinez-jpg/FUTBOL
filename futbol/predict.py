@@ -1,9 +1,15 @@
 """CLI de pronóstico de un partido con todos los mercados pedidos, filtrado
 por confianza real (75%-100%, validada por backtest, ver evaluate.py).
 
+El dataset incluye varias ligas y torneos (ver --list-competitions); cada
+uno tiene su propio modelo. Si el nombre de los dos equipos identifica una
+única competición en común no hace falta indicarla; si no, usa --competition.
+
 Uso:
     python -m futbol.predict "Equipo local" "Equipo visitante"
-    python -m futbol.predict --list-teams
+    python -m futbol.predict "Equipo local" "Equipo visitante" --competition "La Liga"
+    python -m futbol.predict --list-competitions
+    python -m futbol.predict --list-teams --competition "Liga F"
 """
 from __future__ import annotations
 
@@ -14,7 +20,9 @@ from futbol.config import CONFIDENCE_MAX, CONFIDENCE_MIN
 from futbol.models.calibration import GOAL_LINES, TEAM_STAT_LINES
 from futbol.models.player_shots import project_team_players
 from futbol.models.poisson_markets import line_probabilities
-from futbol.pipeline import FutbolPipeline, build_pipeline
+from futbol.pipeline import CompetitionPipeline, build_all_pipelines, find_team_competitions
+
+FutbolPipeline = CompetitionPipeline  # alias usado en las firmas de abajo
 
 SIDE_LABEL = {"over": "más de", "under": "menos de"}
 STAT_LABEL = {
@@ -178,30 +186,81 @@ def print_report(report: dict) -> None:
             _print_pick("      tiros a puerta", pl["sot_pick"], SIDE_LABEL)
 
 
+def resolve_pipeline(pipelines: dict[str, CompetitionPipeline], home_team: str, away_team: str,
+                      competition: str | None) -> CompetitionPipeline:
+    if competition:
+        if competition not in pipelines:
+            known = "\n".join(f"  - {c}" for c in sorted(pipelines))
+            raise ValueError(f"Competición desconocida '{competition}'. Disponibles:\n{known}")
+        return pipelines[competition]
+
+    home_comps = set(find_team_competitions(pipelines, home_team))
+    away_comps = set(find_team_competitions(pipelines, away_team))
+    common = home_comps & away_comps
+
+    if not common:
+        if not home_comps:
+            raise ValueError(f"Equipo local desconocido: '{home_team}'. Prueba --list-teams.")
+        if not away_comps:
+            raise ValueError(f"Equipo visitante desconocido: '{away_team}'. Prueba --list-teams.")
+        raise ValueError(
+            f"'{home_team}' y '{away_team}' no comparten competición en el dataset "
+            f"({', '.join(sorted(home_comps))} vs {', '.join(sorted(away_comps))}); no pueden enfrentarse."
+        )
+    if len(common) > 1:
+        raise ValueError(
+            f"Nombre ambiguo entre varias competiciones ({', '.join(sorted(common))}). "
+            f"Usa --competition para elegir."
+        )
+    return pipelines[next(iter(common))]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Pronóstico de un partido de fútbol.")
     parser.add_argument("home_team", nargs="?", help="Equipo local (nombre exacto del dataset)")
     parser.add_argument("away_team", nargs="?", help="Equipo visitante (nombre exacto del dataset)")
+    parser.add_argument("--competition", help="Nombre exacto de la competición (ver --list-competitions)")
     parser.add_argument("--list-teams", action="store_true", help="Lista los equipos disponibles y sale")
+    parser.add_argument("--list-competitions", action="store_true",
+                         help="Lista las competiciones disponibles y sale")
     parser.add_argument("--no-backtest", action="store_true",
                          help="Omite el backtest de calibración (más rápido, probabilidades sin calibrar)")
     args = parser.parse_args()
 
-    pipeline = build_pipeline(run_backtest=not args.no_backtest)
+    list_only = args.list_competitions or args.list_teams
+    pipelines = build_all_pipelines(run_backtest=not args.no_backtest and not list_only)
 
-    if args.list_teams or not (args.home_team and args.away_team):
-        print("Equipos disponibles:")
-        for t in sorted(pipeline.dixon_coles.teams_):
-            print(f"  - {t}")
-        if not (args.home_team and args.away_team):
-            sys.exit(0 if args.list_teams else 1)
+    if args.list_competitions:
+        print("Competiciones disponibles:")
+        for name, p in sorted(pipelines.items()):
+            print(f"  - {name}  ({len(p.dixon_coles.teams_)} equipos, {len(p.matches_df)} partidos)")
+        sys.exit(0)
+
+    if args.list_teams:
+        comps = [args.competition] if args.competition else sorted(pipelines)
+        for comp in comps:
+            if comp not in pipelines:
+                print(f"Competición desconocida: {comp}", file=sys.stderr)
+                sys.exit(1)
+            print(f"\n{comp}:")
+            for t in sorted(pipelines[comp].dixon_coles.teams_):
+                print(f"  - {t}")
+        sys.exit(0)
+
+    if not (args.home_team and args.away_team):
+        print("Uso: python -m futbol.predict \"Equipo local\" \"Equipo visitante\" "
+              "[--competition NOMBRE]\n(--list-competitions / --list-teams para ver las opciones)",
+              file=sys.stderr)
+        sys.exit(1)
 
     try:
+        pipeline = resolve_pipeline(pipelines, args.home_team, args.away_team, args.competition)
         report = predict_match(pipeline, args.home_team, args.away_team)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
 
+    print(f"[Competición: {pipeline.competition}]")
     print_report(report)
 
 

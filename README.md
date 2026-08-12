@@ -32,19 +32,57 @@ a StatsBomb). Se eligió después de comprobar que:
   jugador que los generó), lo que permite calcular TODOS los mercados
   pedidos, incluido el de jugadores, con datos reales.
 
-**Dataset por defecto: Liga F 2023/24** (primera división femenina de
-España — Barcelona, Real Madrid, Atlético de Madrid, etc.), la única
-temporada de un top-5 europeo disponible en abierto que está **completa**
-(240 partidos, 16 equipos, 30 partidos cada uno — se verificó explícitamente
-antes de usarla; otras temporadas "gratuitas" de StatsBomb para clubes
-masculinos como La Liga o Premier League solo incluyen los partidos de un
-equipo concreto, no la liga entera, y no sirven para un modelo de forma por
-equipo).
+### Competiciones incluidas
 
-Para añadir más temporadas/ligas (todas completas y verificadas), edita
+Se recorrieron ~75 competiciones/temporadas candidatas de StatsBomb Open
+Data y se verificó, para cada una, que todos los equipos disputan (casi) el
+mismo número de partidos — es decir que es una temporada/torneo **completo**
+y no el recorte de un solo equipo, que es lo que StatsBomb regala para la
+mayoría de ligas masculinas top-5 en temporadas recientes (por ejemplo, casi
+todas las temporadas gratuitas de La Liga o de la Bundesliga masculina
+resultan ser solo los partidos del Barcelona o del Bayern, y se descartaron
+por eso). Con las que sí superaron esa verificación se armó esta lista:
+
+**Ligas masculinas** (temporada completa):
+- Premier League 2015/16 (Inglaterra)
+- La Liga 2015/16 (España)
+- Serie A 2015/16 (Italia)
+- Ligue 1 2015/16 (Francia)
+- Indian Super League 2021/22 (India)
+
+**Torneos masculinos de selecciones** (torneo completo):
+- FIFA World Cup 2018 y 2022
+- UEFA Euro 2020 y 2024
+- Copa América 2024
+- Africa Cup of Nations 2023
+
+**Ligas femeninas** (temporada completa):
+- Liga F 2023/24 (España)
+- Frauen Bundesliga 2023/24 (Alemania)
+- Serie A Women 2023/24 (Italia)
+- FA Women's Super League 2018/19, 2020/21 y 2023/24 (Inglaterra)
+- NWSL 2023 (Estados Unidos)
+
+**Torneos femeninos de selecciones** (torneo completo):
+- Women's World Cup 2019 y 2023
+- UEFA Women's Euro 2022 y 2025
+
+Para añadir más (todas completas y verificadas), edita
 `futbol/config.py::COMPETITIONS` con más pares `(competition_id, season_id)`
 de StatsBomb (ver `data/competitions.json` en su repo) y vuelve a ejecutar
 la ingesta.
+
+### Un modelo por competición, no uno global
+
+Mezclar todo en un único modelo distorsionaría los resultados: la ventaja
+de jugar de local en un club no existe igual en un Mundial a sede neutral,
+y el ritmo de gol de una liga femenina doméstica no es el de un torneo de
+selecciones masculino. Por eso `futbol/pipeline.py` agrupa por la columna
+`competition` y ajusta un Dixon-Coles + juego de modelos Poisson +
+calibración **independiente para cada una**. Al pronosticar un partido, si
+el nombre de los dos equipos identifica una única competición en común no
+hace falta indicarla explícitamente; si hay ambigüedad (o los dos equipos
+no coinciden en ninguna) el CLI lo dice y hay que usar `--competition`.
 
 ### Limitación conocida
 
@@ -67,14 +105,22 @@ pip install -r requirements.txt
 ## Uso
 
 ```bash
-# 1. Descargar y procesar los datos (una sola vez; usa cache en data/raw/)
+# 1. Descargar y procesar los datos (tarda; descarga eventos de miles de
+#    partidos y borra el JSON crudo de cada uno tras procesarlo para no
+#    llenar el disco — usa --keep-raw-events si quieres conservarlos)
 python -m futbol.data.build_dataset
 
-# 2. Pronosticar un partido
-python -m futbol.predict --list-teams
-python -m futbol.predict "Barcelona WFC" "Real Madrid CF W"
+# 2. Ver qué competiciones y equipos hay disponibles
+python -m futbol.predict --list-competitions
+python -m futbol.predict --list-teams --competition "Liga F 2023/24 (España)"
 
-# 3. Ver el backtest / validación de calibración
+# 3. Pronosticar un partido (detecta la competición automáticamente si el
+#    par de equipos es inequívoco; si no, se indica con --competition)
+python -m futbol.predict "Barcelona WFC" "Real Madrid CF W"
+python -m futbol.predict "Real Madrid" "Barcelona" --competition "La Liga 2015/16 (España)"
+
+# 4. Ver el backtest / validación de calibración (todas las competiciones,
+#    o una en concreto con --competition)
 python -m futbol.evaluate
 ```
 
@@ -114,7 +160,16 @@ python -m futbol.evaluate
 6. **`futbol/models/calibration.py`**: backtest walk-forward (reentrena los
    modelos usando solo partidos anteriores a cada bloque evaluado) que
    calibra las probabilidades crudas con regresión isotónica y mide si el
-   acierto real coincide con la probabilidad prometida.
+   acierto real coincide con la probabilidad prometida. El tamaño de la
+   ventana de calentamiento y de reentrenamiento se adapta al tamaño de la
+   competición (una liga de 380 partidos no necesita el mismo esquema que
+   un torneo de 31); en competiciones demasiado pequeñas para un backtest
+   fiable, el pronóstico usa la probabilidad Poisson/Dixon-Coles sin
+   calibrar en vez de fallar.
+
+7. **`futbol/pipeline.py`**: orquesta todo lo anterior **por competición**
+   (agrupando por la columna `competition`), no de forma global — ver
+   [Un modelo por competición](#un-modelo-por-competición-no-uno-global).
 
 ## Validación de la confianza (75%-100%)
 
@@ -125,13 +180,18 @@ real de entre el 75% y el 100% se valida empíricamente, no se asume:
 python -m futbol.evaluate
 ```
 
-En el dataset de Liga F 2023/24, con un split honesto (calibrador ajustado
-solo con el primer 70% cronológico de partidos, medido en el 30% final,
-nunca visto por el calibrador): los pronósticos con probabilidad calibrada
-≥75% acertaron ~85-87% de las veces, tanto en los mercados basados en
-Dixon-Coles (1X2, goles, BTTS) como en los basados en las Poisson de equipo
-(corners, tarjetas, tiros, tiros a puerta). Es decir, el filtro de
-confianza es realista y ligeramente conservador, no optimista.
+`evaluate.py` corre este backtest **competición por competición** (cada una
+tiene su propio modelo, ver arriba) con un split honesto: el calibrador se
+ajusta solo con el primer 70% cronológico de partidos de esa competición y
+se mide el acierto en el 30% final, nunca visto por el calibrador. En Liga F
+2023/24, por ejemplo, los pronósticos con probabilidad calibrada ≥75%
+acertaron ~85-87% de las veces, tanto en los mercados basados en Dixon-Coles
+(1X2, goles, BTTS) como en los basados en las Poisson de equipo (corners,
+tarjetas, tiros, tiros a puerta) — es decir, el filtro de confianza es
+realista y ligeramente conservador, no optimista. En torneos pequeños
+(31-64 partidos) hay menos datos para validar y el informe lo refleja con
+un `n` más bajo; ahí conviene mirar también la calibración "de referencia"
+(no hold-out) que imprime `evaluate.py`.
 
 **Importante sobre el marcador exacto**: en fútbol ningún marcador exacto
 alcanza el 75% de probabilidad real (el más probable de un partido suele

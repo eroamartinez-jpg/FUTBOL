@@ -36,11 +36,32 @@ def _record_best(records: list, family: str, market: str, match_id, probs: dict[
     })
 
 
-def walk_forward_backtest(matches_df: pd.DataFrame, burn_in: int = 80,
-                           refit_every: int = 20) -> pd.DataFrame:
+def _adaptive_backtest_params(n: int) -> tuple[int, int]:
+    """Ajusta burn_in/refit_every al tamaño de la competición.
+
+    Una liga de 380 partidos admite el esquema clásico (80/20). Un torneo
+    de 31-64 partidos (Eurocopa, Copa América...) necesita una ventana de
+    calentamiento y de reentrenamiento mucho más pequeña, o directamente no
+    quedan partidos para evaluar.
+    """
+    burn_in = max(12, min(80, n // 3))
+    refit_every = max(4, min(20, n // 8))
+    return burn_in, refit_every
+
+
+def walk_forward_backtest(matches_df: pd.DataFrame, burn_in: int | None = None,
+                           refit_every: int | None = None) -> pd.DataFrame:
     matches_df = matches_df.copy()
     matches_df["date"] = pd.to_datetime(matches_df["date"])
     matches_df = matches_df.sort_values(["date", "match_id"]).reset_index(drop=True)
+
+    if burn_in is None or refit_every is None:
+        auto_burn_in, auto_refit_every = _adaptive_backtest_params(len(matches_df))
+        burn_in = burn_in if burn_in is not None else auto_burn_in
+        refit_every = refit_every if refit_every is not None else auto_refit_every
+
+    if len(matches_df) < burn_in + 4:
+        return pd.DataFrame(columns=["match_id", "family", "market", "side", "raw_prob", "outcome"])
 
     long_df = to_long_format(matches_df)
     long_df = add_rolling_features(long_df, TEAM_ROLLING_WINDOW, MIN_TEAM_HISTORY)
