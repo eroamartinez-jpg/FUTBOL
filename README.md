@@ -151,7 +151,37 @@ python -m futbol.predict "England" "France" --competition "FIFA World Cup"
 # 4. Ver el backtest / validación de calibración (todas las competiciones,
 #    o una en concreto con --competition)
 python -m futbol.evaluate
+
+# 5. Generar la vista web interactiva (elegís liga y equipos desde el
+#    navegador, sin backend ni conexión — ver sección de abajo)
+python -m futbol.export_web
+python -m futbol.build_web
+# abrir web/predictor.html en cualquier navegador
 ```
+
+## Vista web interactiva
+
+`web/predictor.html` es una página autocontenida (sin backend, sin conexión
+a internet) donde se elige una competición y los dos equipos desde
+desplegables y se generan al instante todos los mercados de esta sección,
+con el mismo filtro de confianza ≥75%.
+
+Cómo funciona: `futbol.export_web` vuelca los modelos ya ajustados de las
+16 competiciones (coeficientes de Dixon-Coles, coeficientes de las Poisson
+de equipo + la forma actual de cada equipo, las cuotas de tiro de cada
+jugador y los puntos de la calibración isotónica) a `web/model_data.json`
+(~1 MB). `futbol.build_web` inyecta ese JSON en `web/predictor_template.html`
+para producir `web/predictor.html`. El archivo final incluye un motor de
+predicción en JavaScript (matriz Dixon-Coles con corrección de marcadores
+bajos, Poisson por línea, interpolación de la calibración isotónica) que
+reproduce el cálculo de `predict.py` **exactamente** — se verificó número
+por número contra la salida del CLI para varios partidos de distintas
+competiciones antes de publicarlo. Al no llamar a ningún servidor, corre
+igual desde este repo que pegado en cualquier navegador.
+
+Para actualizar la página después de tocar los modelos o de reingerir
+datos, hay que volver a correr los pasos 5 (`export_web` + `build_web`) —
+no se regenera sola.
 
 ## Cómo funciona
 

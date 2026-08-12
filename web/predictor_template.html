@@ -1,0 +1,871 @@
+<title>Pronosticador FUTBOL</title>
+<style>
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E1712;
+      --surface: #16211B;
+      --surface-2: #1C2A22;
+      --ink: #EDF3EE;
+      --ink-muted: #9BAB9F;
+      --accent: #4CAF7D;
+      --accent-ink: #06150D;
+      --gold: #E3B85C;
+      --gold-ink: #201404;
+      --line: #26332B;
+      --line-strong: #34443A;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E1712;
+    --surface: #16211B;
+    --surface-2: #1C2A22;
+    --ink: #EDF3EE;
+    --ink-muted: #9BAB9F;
+    --accent: #4CAF7D;
+    --accent-ink: #06150D;
+    --gold: #E3B85C;
+    --gold-ink: #201404;
+    --line: #26332B;
+    --line-strong: #34443A;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  :root {
+    --bg: #F7F6F1;
+    --surface: #FFFFFF;
+    --surface-2: #F0EEE6;
+    --ink: #14261E;
+    --ink-muted: #5B6B62;
+    --accent: #1E6B3D;
+    --accent-ink: #F2FBF5;
+    --gold: #C99A3B;
+    --gold-ink: #241A03;
+    --line: #DDE3D9;
+    --line-strong: #C6D0C2;
+    --shadow: 0 1px 2px rgba(20,38,30,.06), 0 8px 24px -12px rgba(20,38,30,.18);
+
+    --font-ui: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Roboto Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--gold); color: var(--gold-ink); }
+
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 20px 20px 64px;
+  }
+
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 6px 2px 22px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  header.top .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  header.top h1 {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  header.top .tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-muted);
+    letter-spacing: 0.02em;
+  }
+  header.top .meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-muted);
+    text-align: right;
+  }
+  header.top .meta strong { color: var(--ink); font-weight: 600; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+
+  .controls {
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 760px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+    .controls .swap-btn { display: none; }
+  }
+  .field label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    margin-bottom: 6px;
+  }
+  select {
+    width: 100%;
+    appearance: none;
+    background: var(--surface-2) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0l5 6 5-6z" fill="%235B6B62"/></svg>') no-repeat right 12px center;
+    color: var(--ink);
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    padding: 10px 30px 10px 12px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  select:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  select:disabled { opacity: .5; }
+
+  button.predict {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 3px;
+    padding: 11px 22px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button.predict:hover { filter: brightness(1.08); }
+  button.predict:active { transform: translateY(1px); }
+  button.predict:disabled { opacity: .5; cursor: default; }
+
+  .empty-state {
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 14px;
+  }
+  .empty-state .big { font-size: 34px; margin-bottom: 10px; opacity: .6; }
+
+  #report { display: none; flex-direction: column; gap: 18px; }
+  #report.show { display: flex; }
+
+  /* ---- hero ---- */
+  .hero {
+    padding: 26px 24px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 18px;
+  }
+  .hero .team {
+    text-align: center;
+  }
+  .hero .team .name {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+  .hero .team .role {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-muted);
+    margin-bottom: 4px;
+  }
+  .hero .xg {
+    text-align: center;
+  }
+  .hero .xg .score {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .hero .xg .label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-muted);
+    margin-top: 2px;
+  }
+
+  .scoreline-note {
+    border-top: 1px solid var(--line);
+    padding: 16px 24px 22px;
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .scoreline-note .callout {
+    font-size: 13px;
+    color: var(--ink-muted);
+    max-width: 320px;
+  }
+  .scoreline-note .callout b { color: var(--ink); font-family: var(--font-mono); }
+  .top5 { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+  .top5 .chip {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 6px 10px;
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+  .top5 .chip .sc { font-weight: 700; }
+  .top5 .chip .pc { color: var(--ink-muted); }
+
+  /* ---- market grid ---- */
+  .market-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 760px) { .market-grid { grid-template-columns: 1fr; } }
+
+  .card {
+    padding: 16px 18px;
+  }
+  .card h3 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border-radius: 999px;
+    padding: 6px 12px 6px 10px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .pill.confident {
+    background: color-mix(in srgb, var(--gold) 18%, transparent);
+    border: 1px solid var(--gold);
+    color: var(--ink);
+  }
+  .pill.confident .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex: none; }
+  .pill.none {
+    border: 1px dashed var(--line-strong);
+    color: var(--ink-muted);
+    font-weight: 500;
+    font-size: 12px;
+  }
+  .pill .pct {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+  .row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+  /* ---- team stat comparison ---- */
+  .stat-compare { display: flex; flex-direction: column; gap: 16px; }
+  .stat-block .stat-head {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+  .stat-block .bars { display: flex; flex-direction: column; gap: 8px; }
+  .stat-team-row {
+    display: grid;
+    grid-template-columns: 84px 1fr 56px;
+    align-items: center;
+    gap: 10px;
+  }
+  .stat-team-row .tname {
+    font-size: 12px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bar-track {
+    height: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--accent);
+  }
+  .stat-team-row .val {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    text-align: right;
+  }
+  .stat-team-row .pick {
+    grid-column: 1 / -1;
+    margin-top: 2px;
+  }
+
+  /* ---- players ---- */
+  .players-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 700px) { .players-grid { grid-template-columns: 1fr; } }
+  .player-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+  }
+  .player-row:first-of-type { border-top: none; padding-top: 0; }
+  .player-row .p-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .player-row .p-name { font-weight: 700; font-size: 14px; }
+  .player-row .p-sample {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .player-row .p-proj {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-muted);
+  }
+  .player-row .p-picks { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  footer.foot {
+    margin-top: 30px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  footer.foot a { color: var(--ink-muted); }
+
+  .section-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-muted);
+    margin: 4px 2px 0;
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>FUTBOL</h1>
+      <span class="tag">Pronosticador &mdash; 16 competiciones, datos reales</span>
+    </div>
+    <div class="meta" id="dataset-meta">cargando&hellip;</div>
+  </header>
+
+  <div class="panel controls">
+    <div class="field">
+      <label for="sel-competition">Competición</label>
+      <select id="sel-competition"></select>
+    </div>
+    <div class="field">
+      <label for="sel-home">Equipo local</label>
+      <select id="sel-home"></select>
+    </div>
+    <div class="field">
+      <label for="sel-away">Equipo visitante</label>
+      <select id="sel-away"></select>
+    </div>
+    <button class="predict" id="btn-predict">Predecir</button>
+  </div>
+
+  <div class="panel empty-state" id="empty-state">
+    <div class="big">&#9917;</div>
+    Elegí competición y equipos, y tocá <strong>Predecir</strong>.<br>
+    Solo se muestran mercados con probabilidad real calibrada &ge; 75%.
+  </div>
+
+  <div id="report">
+    <div class="panel hero" id="hero"></div>
+    <div class="panel scoreline-note" id="scoreline-note"></div>
+
+    <div class="section-title">Resultado &amp; goles</div>
+    <div class="market-grid" id="grid-result"></div>
+
+    <div class="section-title">Estadísticas por equipo</div>
+    <div class="panel card" id="team-stats"></div>
+
+    <div class="section-title">Jugadores con más tiros esperados</div>
+    <div class="panel card">
+      <div class="players-grid" id="players-grid"></div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>Datos: StatsBomb Open Data. Probabilidades calibradas por backtest walk-forward (ver evaluate.py del repositorio).</span>
+    <span id="footer-comp"></span>
+  </footer>
+</div>
+
+<script>
+window.MODEL_DATA = __MODEL_DATA_JSON__;
+</script>
+<script>
+(function () {
+  "use strict";
+  const DATA = window.MODEL_DATA;
+  const CONF_MIN = DATA.confidence_min;
+  const GOAL_LINES = DATA.goal_lines;
+  const TEAM_STAT_LINES = DATA.team_stat_lines;
+  const PLAYER_SHOT_LINES = [0.5, 1.5, 2.5, 3.5];
+  const PLAYER_SOT_LINES = [0.5, 1.5, 2.5];
+  const STAT_LABEL = { corners: "Corners", cards: "Tarjetas", shots: "Tiros totales", shots_on_target: "Tiros a puerta" };
+  const SIDE_LABEL = { over: "Más de", under: "Menos de" };
+
+  const compByName = {};
+  DATA.competitions.forEach(c => compByName[c.competition] = c);
+
+  // ---------- math helpers ----------
+  function logFactorial(k) {
+    let s = 0;
+    for (let i = 2; i <= k; i++) s += Math.log(i);
+    return s;
+  }
+  function poissonPMF(k, mu) {
+    if (mu <= 0) return k === 0 ? 1 : 0;
+    return Math.exp(-mu + k * Math.log(mu) - logFactorial(k));
+  }
+  function poissonCDF(k, mu) {
+    let s = 0;
+    for (let i = 0; i <= k; i++) s += poissonPMF(i, mu);
+    return s;
+  }
+  function tau(x, y, lam, mu, rho) {
+    if (x === 0 && y === 0) return 1 - lam * mu * rho;
+    if (x === 0 && y === 1) return 1 + lam * rho;
+    if (x === 1 && y === 0) return 1 + mu * rho;
+    if (x === 1 && y === 1) return 1 - rho;
+    return 1.0;
+  }
+
+  // ---------- Dixon-Coles ----------
+  function expectedGoals(dc, home, away) {
+    const aH = dc.attack[home] ?? 0, dH = dc.defense[home] ?? 0;
+    const aA = dc.attack[away] ?? 0, dA = dc.defense[away] ?? 0;
+    const lam = Math.exp(Math.min(dc.mu + aH - dA + dc.home_adv, 15));
+    const m = Math.exp(Math.min(dc.mu + aA - dH, 15));
+    return [lam, m];
+  }
+  function scorelineMatrix(dc, home, away) {
+    const [lam, m] = expectedGoals(dc, home, away);
+    const n = dc.max_goals + 1;
+    const hp = [], ap = [];
+    for (let k = 0; k < n; k++) { hp.push(poissonPMF(k, lam)); ap.push(poissonPMF(k, m)); }
+    const matrix = [];
+    for (let i = 0; i < n; i++) {
+      const row = new Array(n);
+      for (let j = 0; j < n; j++) row[j] = hp[i] * ap[j];
+      matrix.push(row);
+    }
+    for (let x = 0; x < 2; x++) for (let y = 0; y < 2; y++) matrix[x][y] *= tau(x, y, lam, m, dc.rho);
+    let sum = 0;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { if (matrix[i][j] < 0) matrix[i][j] = 0; sum += matrix[i][j]; }
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) matrix[i][j] /= sum;
+    return { matrix, lam, mu: m };
+  }
+  function computeDixonColesMarkets(dc, home, away) {
+    const { matrix, lam, mu } = scorelineMatrix(dc, home, away);
+    const n = matrix.length;
+    let bestH = 0, bestA = 0, bestP = -1;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (matrix[i][j] > bestP) { bestP = matrix[i][j]; bestH = i; bestA = j; }
+
+    let homeWin = 0, draw = 0, awayWin = 0;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if (i > j) homeWin += matrix[i][j]; else if (i === j) draw += matrix[i][j]; else awayWin += matrix[i][j];
+    }
+
+    const totalGoalsProbs = new Array(2 * n - 1).fill(0);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) totalGoalsProbs[i + j] += matrix[i][j];
+
+    const totals = {};
+    GOAL_LINES.forEach(line => {
+      const thresh = Math.floor(line);
+      let under = 0;
+      for (let k = 0; k <= thresh && k < totalGoalsProbs.length; k++) under += totalGoalsProbs[k];
+      totals[line] = { over: 1 - under, under };
+    });
+
+    let bttsYes = 0;
+    for (let i = 1; i < n; i++) for (let j = 1; j < n; j++) bttsYes += matrix[i][j];
+
+    const pairs = [];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) pairs.push({ score: `${i}-${j}`, prob: matrix[i][j] });
+    pairs.sort((a, b) => b.prob - a.prob);
+
+    return {
+      lambda_home: lam, lambda_away: mu,
+      most_likely_score: `${bestH}-${bestA}`, most_likely_score_prob: bestP,
+      top_scorelines: pairs.slice(0, 5),
+      x1x2: { home_win: homeWin, draw, away_win: awayWin },
+      total_goals: totals,
+      btts: { yes: bttsYes, no: 1 - bttsYes },
+    };
+  }
+
+  // ---------- Poisson team markets ----------
+  function poissonMean(model, isHome, ownForm, oppForm, stat) {
+    const x = [
+      isHome ? 1 : 0,
+      ownForm[`roll_${stat}_for`] ?? 0,
+      ownForm[`roll_${stat}_against`] ?? 0,
+      oppForm[`roll_${stat}_for`] ?? 0,
+      oppForm[`roll_${stat}_against`] ?? 0,
+    ];
+    let z = model.intercept;
+    for (let i = 0; i < x.length; i++) z += x[i] * model.coef[i];
+    return Math.exp(Math.min(z, 15));
+  }
+  function lineProbabilities(mu, line) {
+    const thresh = Math.floor(line);
+    const under = poissonCDF(thresh, mu);
+    return { over: 1 - under, under };
+  }
+
+  // ---------- calibration ----------
+  function calibrate(rawProb, family, calibrators) {
+    const cal = calibrators[family];
+    if (!cal) return rawProb;
+    const X = cal.x, Y = cal.y;
+    if (X.length === 0) return rawProb;
+    if (rawProb <= X[0]) return Y[0];
+    if (rawProb >= X[X.length - 1]) return Y[Y.length - 1];
+    for (let i = 0; i < X.length - 1; i++) {
+      if (rawProb >= X[i] && rawProb <= X[i + 1]) {
+        if (X[i + 1] === X[i]) return Y[i];
+        const t = (rawProb - X[i]) / (X[i + 1] - X[i]);
+        return Y[i] + t * (Y[i + 1] - Y[i]);
+      }
+    }
+    return Y[Y.length - 1];
+  }
+  function bestCalibratedPick(probsObj, family, calibrators) {
+    let bestSide = null, bestRaw = -1;
+    for (const side in probsObj) if (probsObj[side] > bestRaw) { bestRaw = probsObj[side]; bestSide = side; }
+    const calibrated = calibrate(bestRaw, family, calibrators);
+    if (calibrated >= CONF_MIN) return { side: bestSide, raw_prob: bestRaw, prob: Math.min(calibrated, 1.0) };
+    return null;
+  }
+  function bestLinePick(mu, lines, family, calibrators) {
+    let best = null;
+    lines.forEach(line => {
+      const probs = lineProbabilities(mu, line);
+      const side = probs.over > probs.under ? "over" : "under";
+      const raw = probs[side];
+      const calibrated = calibrate(raw, family, calibrators);
+      if (!best || calibrated > best.prob) best = { line, side, raw_prob: raw, prob: Math.min(calibrated, 1.0) };
+    });
+    if (best && best.prob >= CONF_MIN) return best;
+    return null;
+  }
+
+  // ---------- players ----------
+  function projectPlayers(comp, team, teamForm, muShots, muSot, topN) {
+    const squad = comp.players.filter(p => p.team === team);
+    const withProj = squad.map(p => ({
+      ...p,
+      proj_shots: Math.max(p.shots_share * muShots, 0.02),
+      proj_sot: Math.max(p.sot_share * muSot, 0.02),
+    }));
+    withProj.sort((a, b) => b.proj_shots - a.proj_shots);
+    return withProj.slice(0, topN);
+  }
+
+  // ---------- full prediction ----------
+  function predictMatch(comp, homeTeam, awayTeam) {
+    const dcMarkets = computeDixonColesMarkets(comp.dixon_coles, homeTeam, awayTeam);
+    const calibrators = comp.calibrators;
+
+    const result = {
+      home_team: homeTeam, away_team: awayTeam,
+      scoreline: {
+        score: dcMarkets.most_likely_score,
+        prob: dcMarkets.most_likely_score_prob,
+        calibrated_prob: calibrate(dcMarkets.most_likely_score_prob, "dixon_coles", calibrators),
+        top5: dcMarkets.top_scorelines,
+        xg_home: dcMarkets.lambda_home, xg_away: dcMarkets.lambda_away,
+      },
+      pick_1x2: bestCalibratedPick(dcMarkets.x1x2, "dixon_coles", calibrators),
+      pick_btts: bestCalibratedPick(dcMarkets.btts, "dixon_coles", calibrators),
+      goals_picks: {},
+      team_stats: {},
+      players: { home: [], away: [] },
+    };
+
+    GOAL_LINES.forEach(line => {
+      const pick = bestCalibratedPick(dcMarkets.total_goals[line], "dixon_coles", calibrators);
+      if (pick) result.goals_picks[line] = pick;
+    });
+
+    const homeForm = comp.team_form[homeTeam] || {};
+    const awayForm = comp.team_form[awayTeam] || {};
+
+    DATA.stat_targets.forEach(stat => {
+      const model = comp.poisson_models[stat];
+      const muHome = poissonMean(model, true, homeForm, awayForm, stat);
+      const muAway = poissonMean(model, false, awayForm, homeForm, stat);
+      result.team_stats[stat] = {
+        mu_home: muHome, mu_away: muAway,
+        pick_home: bestLinePick(muHome, TEAM_STAT_LINES[stat], "poisson_market", calibrators),
+        pick_away: bestLinePick(muAway, TEAM_STAT_LINES[stat], "poisson_market", calibrators),
+      };
+    });
+
+    const muShotsHome = result.team_stats.shots.mu_home, muShotsAway = result.team_stats.shots.mu_away;
+    const muSotHome = result.team_stats.shots_on_target.mu_home, muSotAway = result.team_stats.shots_on_target.mu_away;
+
+    const homePlayers = projectPlayers(comp, homeTeam, homeForm, muShotsHome, muSotHome, 3);
+    const awayPlayers = projectPlayers(comp, awayTeam, awayForm, muShotsAway, muSotAway, 3);
+    [homePlayers, awayPlayers].forEach(list => list.forEach(p => {
+      p.shots_pick = bestLinePick(p.proj_shots, PLAYER_SHOT_LINES, "poisson_market", calibrators);
+      p.sot_pick = bestLinePick(p.proj_sot, PLAYER_SOT_LINES, "poisson_market", calibrators);
+    }));
+    result.players.home = homePlayers;
+    result.players.away = awayPlayers;
+
+    return result;
+  }
+
+  // ---------- rendering ----------
+  const $ = sel => document.querySelector(sel);
+  function pct(p) { return (p * 100).toFixed(1) + "%"; }
+  function el(tag, cls, html) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+  function pillHTML(pick, sideMap) {
+    if (!pick) return `<span class="pill none">Sin pronóstico &ge; 75%</span>`;
+    const sideTxt = (sideMap && sideMap[pick.side]) || pick.side;
+    const lineTxt = pick.line !== undefined ? ` ${pick.line}` : "";
+    return `<span class="pill confident"><span class="dot"></span>${sideTxt}${lineTxt} &middot; <span class="pct">${pct(pick.prob)}</span></span>`;
+  }
+
+  function renderHero(r) {
+    const hero = $("#hero");
+    hero.innerHTML = `
+      <div class="team"><div class="role">Local</div><div class="name">${r.home_team}</div></div>
+      <div class="xg">
+        <div class="score">${r.scoreline.xg_home.toFixed(2)} &ndash; ${r.scoreline.xg_away.toFixed(2)}</div>
+        <div class="label">Goles esperados</div>
+      </div>
+      <div class="team"><div class="role">Visitante</div><div class="name">${r.away_team}</div></div>
+    `;
+
+    const note = $("#scoreline-note");
+    const chips = r.scoreline.top5.map(s => `<span class="chip"><span class="sc">${s.score}</span><span class="pc">${pct(s.prob)}</span></span>`).join("");
+    note.innerHTML = `
+      <div class="callout">Marcador más probable <b>${r.scoreline.score}</b> (~${pct(r.scoreline.calibrated_prob)} real) &mdash;
+      por debajo del 75%: en fútbol ningún marcador exacto llega a ese nivel de confianza. Top 5:</div>
+      <div class="top5">${chips}</div>
+    `;
+  }
+
+  function renderResultGrid(r) {
+    const grid = $("#grid-result");
+    grid.innerHTML = "";
+
+    const c1 = el("div", "panel card");
+    c1.appendChild(el("h3", null, "Resultado (1X2)"));
+    c1.appendChild(el("div", null, pillHTML(r.pick_1x2, {
+      home_win: `Gana ${r.home_team}`, draw: "Empate", away_win: `Gana ${r.away_team}`,
+    })));
+    grid.appendChild(c1);
+
+    const c2 = el("div", "panel card");
+    c2.appendChild(el("h3", null, "Ambos equipos marcan"));
+    c2.appendChild(el("div", null, pillHTML(r.pick_btts, { yes: "Sí", no: "No" })));
+    grid.appendChild(c2);
+
+    const c3 = el("div", "panel card");
+    c3.appendChild(el("h3", null, "Total de goles"));
+    const lines = Object.keys(r.goals_picks);
+    if (lines.length === 0) {
+      c3.appendChild(el("div", null, pillHTML(null)));
+    } else {
+      const stack = el("div", "stack");
+      lines.forEach(line => {
+        const row = el("div", "row-between");
+        row.appendChild(el("span", null, `Línea ${line}`));
+        row.appendChild(el("span", null, pillHTML(r.goals_picks[line], SIDE_LABEL)));
+        stack.appendChild(row);
+      });
+      c3.appendChild(stack);
+    }
+    grid.appendChild(c3);
+  }
+
+  function renderTeamStats(r) {
+    const wrap = $("#team-stats");
+    wrap.innerHTML = "";
+    const compare = el("div", "stat-compare");
+    DATA.stat_targets.forEach(stat => {
+      const d = r.team_stats[stat];
+      const maxVal = Math.max(d.mu_home, d.mu_away, 0.01);
+      const block = el("div", "stat-block");
+      block.appendChild(el("div", "stat-head", `<span>${STAT_LABEL[stat]}</span>`));
+      const bars = el("div", "bars");
+
+      const rowH = el("div", "stat-team-row");
+      rowH.innerHTML = `<span class="tname">${r.home_team}</span>
+        <span class="bar-track"><span class="bar-fill" style="width:${(d.mu_home / maxVal * 100).toFixed(0)}%"></span></span>
+        <span class="val">${d.mu_home.toFixed(2)}</span>`;
+      bars.appendChild(rowH);
+      const pickRow1 = el("div", null, pillHTML(d.pick_home, SIDE_LABEL));
+      pickRow1.style.marginLeft = "94px";
+      bars.appendChild(pickRow1);
+
+      const rowA = el("div", "stat-team-row");
+      rowA.innerHTML = `<span class="tname">${r.away_team}</span>
+        <span class="bar-track"><span class="bar-fill" style="width:${(d.mu_away / maxVal * 100).toFixed(0)}%"></span></span>
+        <span class="val">${d.mu_away.toFixed(2)}</span>`;
+      bars.appendChild(rowA);
+      const pickRow2 = el("div", null, pillHTML(d.pick_away, SIDE_LABEL));
+      pickRow2.style.marginLeft = "94px";
+      bars.appendChild(pickRow2);
+
+      block.appendChild(bars);
+      compare.appendChild(block);
+    });
+    wrap.appendChild(compare);
+  }
+
+  function renderPlayers(r) {
+    const grid = $("#players-grid");
+    grid.innerHTML = "";
+    [["home", r.home_team], ["away", r.away_team]].forEach(([key, teamName]) => {
+      const col = el("div");
+      col.appendChild(el("div", "stat-head", `<span>${teamName}</span>`));
+      const players = r.players[key];
+      if (players.length === 0) {
+        col.appendChild(el("div", null, `<span class="pill none">Sin datos suficientes de plantilla</span>`));
+      } else {
+        players.forEach(p => {
+          const row = el("div", "player-row");
+          row.innerHTML = `
+            <div class="p-head"><span class="p-name">${p.name}</span><span class="p-sample">${p.matches} PJ</span></div>
+            <div class="p-proj">Tiros esperados ${p.proj_shots.toFixed(2)} &middot; a puerta ${p.proj_sot.toFixed(2)}</div>
+            <div class="p-picks"></div>
+          `;
+          const picks = row.querySelector(".p-picks");
+          picks.innerHTML = pillHTML(p.shots_pick, SIDE_LABEL) + pillHTML(p.sot_pick, SIDE_LABEL);
+          col.appendChild(row);
+        });
+      }
+      grid.appendChild(col);
+    });
+  }
+
+  function render(r, compName) {
+    renderHero(r);
+    renderResultGrid(r);
+    renderTeamStats(r);
+    renderPlayers(r);
+    $("#report").classList.add("show");
+    $("#empty-state").style.display = "none";
+    $("#footer-comp").textContent = `Competición: ${compName}`;
+  }
+
+  // ---------- UI wiring ----------
+  const selComp = $("#sel-competition");
+  const selHome = $("#sel-home");
+  const selAway = $("#sel-away");
+  const btn = $("#btn-predict");
+
+  DATA.competitions.forEach(c => {
+    const opt = el("option");
+    opt.value = c.competition;
+    opt.textContent = `${c.competition} (${c.teams.length} equipos, ${c.n_matches} partidos)`;
+    selComp.appendChild(opt);
+  });
+
+  const totalMatches = DATA.competitions.reduce((s, c) => s + c.n_matches, 0);
+  $("#dataset-meta").innerHTML = `<strong>${DATA.competitions.length}</strong> competiciones &middot; <strong>${totalMatches.toLocaleString("es")}</strong> partidos`;
+
+  function populateTeams(compName) {
+    const comp = compByName[compName];
+    [selHome, selAway].forEach(sel => {
+      sel.innerHTML = "";
+      comp.teams.forEach(t => {
+        const opt = el("option"); opt.value = t; opt.textContent = t;
+        sel.appendChild(opt);
+      });
+    });
+    if (comp.teams.length > 1) selAway.selectedIndex = 1;
+  }
+
+  selComp.addEventListener("change", () => populateTeams(selComp.value));
+  populateTeams(selComp.value);
+
+  btn.addEventListener("click", () => {
+    const comp = compByName[selComp.value];
+    const home = selHome.value, away = selAway.value;
+    if (home === away) {
+      alert("Elegí dos equipos distintos.");
+      return;
+    }
+    const result = predictMatch(comp, home, away);
+    render(result, comp.competition);
+  });
+})();
+</script>

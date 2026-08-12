@@ -4,5 +4,6 @@ __pycache__/
 data/raw/
 data/processed/
 web/model_data.json
+web/predictor.html
 *.egg-info/
 .pytest_cache/
