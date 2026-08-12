@@ -66,12 +66,16 @@ class DixonColes:
         x0 = np.concatenate([np.zeros(n), np.zeros(n), [0.2, 0.0, 0.3]])
 
         # Regularización L2 adaptativa: con pocos partidos por equipo (típico
-        # de un torneo corto de selecciones) hay casi tantos parámetros
-        # (2*n_equipos+3) como observaciones, y el ajuste sin penalizar
-        # diverge (attack/defense se van a +-inf, exp() desborda). Cuanto
-        # peor sea esa proporción, más fuerte la penalización.
-        n_params = 2 * n + 3
-        alpha = max(1e-3, 0.05 * n_params / max(len(df), 1))
+        # de un torneo corto de selecciones, p.ej. Copa América: ~4 partidos
+        # por equipo) casi no hay evidencia para separar el ataque/defensa de
+        # cada equipo, y el ajuste sin penalizar diverge (attack/defense se
+        # van a extremos, dando goles esperados absurdos como 14 vs 0.01).
+        # La penalización se ajusta según los partidos por equipo: fuerte con
+        # pocos (torneos cortos), casi nula con muchos (ligas de 380
+        # partidos), calibrada empíricamente para que ninguna competición
+        # del dataset dé goles esperados fuera de un rango realista.
+        matches_per_team = 2 * len(df) / max(n, 1)
+        alpha = max(1e-3, 90.0 / matches_per_team ** 2.6)
 
         def unpack(x):
             attack = x[:n]
