@@ -424,7 +424,7 @@
   <header class="top">
     <div class="brand">
       <h1>FUTBOL</h1>
-      <span class="tag">Pronosticador &mdash; 16 competiciones, datos reales</span>
+      <span class="tag">Pronosticador &mdash; ligas históricas calibradas + ligas en vivo 2026-27</span>
     </div>
     <div class="meta" id="dataset-meta">cargando&hellip;</div>
   </header>
@@ -450,7 +450,8 @@
   <div class="panel empty-state" id="empty-state">
     <div class="big">&#9917;</div>
     Elegí competición y equipos, y tocá <strong>Predecir</strong>.<br>
-    Solo se muestran mercados con probabilidad real calibrada &ge; 75%.
+    Solo se muestran mercados con probabilidad &ge; 75% (calibrada con backtest histórico en las
+    ligas verificadas; estimada sin calibrar en las ligas "en vivo" de temporada en curso).
   </div>
 
   <div id="report">
@@ -470,18 +471,20 @@
   </div>
 
   <footer class="foot">
-    <span>Datos: StatsBomb Open Data. Probabilidades calibradas por backtest walk-forward (ver evaluate.py del repositorio).</span>
+    <span>Históricas: StatsBomb Open Data, calibradas por backtest walk-forward (ver evaluate.py). En vivo: tabla de posiciones de la temporada 2026-27, modelo Poisson/Dixon-Coles sin backtest.</span>
     <span id="footer-comp"></span>
   </footer>
 </div>
 
 <script>
 window.MODEL_DATA = __MODEL_DATA_JSON__;
+window.LIVE_DATA = __LIVE_DATA_JSON__;
 </script>
 <script>
 (function () {
   "use strict";
   const DATA = window.MODEL_DATA;
+  const LIVE = window.LIVE_DATA;
   const CONF_MIN = DATA.confidence_min;
   const GOAL_LINES = DATA.goal_lines;
   const TEAM_STAT_LINES = DATA.team_stat_lines;
@@ -492,6 +495,23 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
 
   const compByName = {};
   DATA.competitions.forEach(c => compByName[c.competition] = c);
+
+  // agrupa el banco de equipos "en vivo" (Track B) por liga
+  const liveCompByName = {};
+  LIVE.leagues.forEach(l => {
+    liveCompByName[l.name] = {
+      name: l.name, group: l.group, track: "live",
+      leagueAvgPerTeam: l.league_avg_per_team,
+      teams: {},
+    };
+  });
+  Object.entries(LIVE.teams).forEach(([teamName, t]) => {
+    const lc = liveCompByName[t.league];
+    if (lc) lc.teams[teamName] = t;
+  });
+  Object.keys(liveCompByName).forEach(name => {
+    if (Object.keys(liveCompByName[name].teams).length < 2) delete liveCompByName[name];
+  });
 
   // ---------- math helpers ----------
   function logFactorial(k) {
@@ -516,33 +536,24 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
     return 1.0;
   }
 
-  // ---------- Dixon-Coles ----------
-  function expectedGoals(dc, home, away) {
-    const aH = dc.attack[home] ?? 0, dH = dc.defense[home] ?? 0;
-    const aA = dc.attack[away] ?? 0, dA = dc.defense[away] ?? 0;
-    const lam = Math.exp(Math.min(dc.mu + aH - dA + dc.home_adv, 15));
-    const m = Math.exp(Math.min(dc.mu + aA - dH, 15));
-    return [lam, m];
-  }
-  function scorelineMatrix(dc, home, away) {
-    const [lam, m] = expectedGoals(dc, home, away);
-    const n = dc.max_goals + 1;
+  // ---------- Dixon-Coles (genérico: matriz + mercados a partir de lambda/mu) ----------
+  function buildScorelineMatrix(lam, mu, rho, maxGoals) {
+    const n = maxGoals + 1;
     const hp = [], ap = [];
-    for (let k = 0; k < n; k++) { hp.push(poissonPMF(k, lam)); ap.push(poissonPMF(k, m)); }
+    for (let k = 0; k < n; k++) { hp.push(poissonPMF(k, lam)); ap.push(poissonPMF(k, mu)); }
     const matrix = [];
     for (let i = 0; i < n; i++) {
       const row = new Array(n);
       for (let j = 0; j < n; j++) row[j] = hp[i] * ap[j];
       matrix.push(row);
     }
-    for (let x = 0; x < 2; x++) for (let y = 0; y < 2; y++) matrix[x][y] *= tau(x, y, lam, m, dc.rho);
+    for (let x = 0; x < 2; x++) for (let y = 0; y < 2; y++) matrix[x][y] *= tau(x, y, lam, mu, rho);
     let sum = 0;
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { if (matrix[i][j] < 0) matrix[i][j] = 0; sum += matrix[i][j]; }
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) matrix[i][j] /= sum;
-    return { matrix, lam, mu: m };
+    return matrix;
   }
-  function computeDixonColesMarkets(dc, home, away) {
-    const { matrix, lam, mu } = scorelineMatrix(dc, home, away);
+  function marketsFromMatrix(matrix, lam, mu) {
     const n = matrix.length;
     let bestH = 0, bestA = 0, bestP = -1;
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (matrix[i][j] > bestP) { bestP = matrix[i][j]; bestH = i; bestA = j; }
@@ -578,6 +589,42 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
       total_goals: totals,
       btts: { yes: bttsYes, no: 1 - bttsYes },
     };
+  }
+
+  // ---------- Track A: StatsBomb histórico calibrado ----------
+  function expectedGoals(dc, home, away) {
+    const aH = dc.attack[home] ?? 0, dH = dc.defense[home] ?? 0;
+    const aA = dc.attack[away] ?? 0, dA = dc.defense[away] ?? 0;
+    const lam = Math.exp(Math.min(dc.mu + aH - dA + dc.home_adv, 15));
+    const m = Math.exp(Math.min(dc.mu + aA - dH, 15));
+    return [lam, m];
+  }
+  function computeDixonColesMarkets(dc, home, away) {
+    const [lam, mu] = expectedGoals(dc, home, away);
+    const matrix = buildScorelineMatrix(lam, mu, dc.rho, dc.max_goals);
+    return marketsFromMatrix(matrix, lam, mu);
+  }
+
+  // ---------- Track B: ligas en vivo, temporada en curso (sin calibración histórica) ----------
+  function dynamicShrink(pj) {
+    const K_BASE = 6, K_EXTRA = 10, K_TAPER_GAMES = 10;
+    const extra = K_EXTRA * Math.max(0, (K_TAPER_GAMES - pj) / K_TAPER_GAMES);
+    return K_BASE + extra;
+  }
+  function clampNum(v, min, max) { return Math.max(min, Math.min(max, v)); }
+  function computeLiveMarkets(live, home, away) {
+    const leaguePerTeam = live.leagueAvgPerTeam;
+    const kH = dynamicShrink(home.pj), kA = dynamicShrink(away.pj);
+    const hGF = (home.gf + kH * leaguePerTeam) / (home.pj + kH);
+    const hGC = (home.gc + kH * leaguePerTeam) / (home.pj + kH);
+    const aGF = (away.gf + kA * leaguePerTeam) / (away.pj + kA);
+    const aGC = (away.gc + kA * leaguePerTeam) / (away.pj + kA);
+    const atkH = hGF / leaguePerTeam, defH = hGC / leaguePerTeam;
+    const atkA = aGF / leaguePerTeam, defA = aGC / leaguePerTeam;
+    const lam = clampNum(atkH * defA * leaguePerTeam * live.hfa, 0.15, 5.5);
+    const mu = clampNum(atkA * defH * leaguePerTeam, 0.15, 5.5);
+    const matrix = buildScorelineMatrix(lam, mu, live.rho, live.maxGoals);
+    return marketsFromMatrix(matrix, lam, mu);
   }
 
   // ---------- Poisson team markets ----------
@@ -703,6 +750,63 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
     return result;
   }
 
+  // ---------- predicción Track B (ligas en vivo) ----------
+  const LIVE_FIELD = { cards: "cards", shots: "shots", shots_on_target: "sot", corners: "corners" };
+
+  function predictLiveMatch(liveComp, homeName, awayName) {
+    const home = liveComp.teams[homeName];
+    const away = liveComp.teams[awayName];
+    const dcMarkets = computeLiveMarkets(
+      { leagueAvgPerTeam: liveComp.leagueAvgPerTeam, hfa: LIVE.home_advantage, rho: LIVE.rho, maxGoals: LIVE.max_goals },
+      home, away,
+    );
+
+    const result = {
+      home_team: homeName, away_team: awayName, track: "live",
+      scoreline: {
+        score: dcMarkets.most_likely_score,
+        prob: dcMarkets.most_likely_score_prob,
+        calibrated_prob: dcMarkets.most_likely_score_prob,
+        top5: dcMarkets.top_scorelines,
+        xg_home: dcMarkets.lambda_home, xg_away: dcMarkets.lambda_away,
+      },
+      pick_1x2: bestCalibratedPick(dcMarkets.x1x2, "live", {}),
+      pick_btts: bestCalibratedPick(dcMarkets.btts, "live", {}),
+      goals_picks: {},
+      team_stats: {},
+      players: { home: [], away: [] },
+    };
+
+    GOAL_LINES.forEach(line => {
+      const pick = bestCalibratedPick(dcMarkets.total_goals[line], "live", {});
+      if (pick) result.goals_picks[line] = pick;
+    });
+
+    DATA.stat_targets.forEach(stat => {
+      const field = LIVE_FIELD[stat];
+      const muHome = home[field], muAway = away[field];
+      result.team_stats[stat] = {
+        mu_home: muHome, mu_away: muAway,
+        pick_home: bestLinePick(muHome, TEAM_STAT_LINES[stat], "live", {}),
+        pick_away: bestLinePick(muAway, TEAM_STAT_LINES[stat], "live", {}),
+      };
+    });
+
+    function playersFor(team) {
+      const top = (team.players || []).slice().sort((a, b) => b.shots - a.shots).slice(0, 3);
+      return top.map(p => ({
+        name: p.name, matches: team.pj,
+        proj_shots: p.shots, proj_sot: p.sot,
+        shots_pick: bestLinePick(p.shots, PLAYER_SHOT_LINES, "live", {}),
+        sot_pick: bestLinePick(p.sot, PLAYER_SOT_LINES, "live", {}),
+      }));
+    }
+    result.players.home = playersFor(home);
+    result.players.away = playersFor(away);
+
+    return result;
+  }
+
   // ---------- rendering ----------
   const $ = sel => document.querySelector(sel);
   function pct(p) { return (p * 100).toFixed(1) + "%"; }
@@ -732,8 +836,9 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
 
     const note = $("#scoreline-note");
     const chips = r.scoreline.top5.map(s => `<span class="chip"><span class="sc">${s.score}</span><span class="pc">${pct(s.prob)}</span></span>`).join("");
+    const probLabel = r.track === "live" ? "estimada" : "real";
     note.innerHTML = `
-      <div class="callout">Marcador más probable <b>${r.scoreline.score}</b> (~${pct(r.scoreline.calibrated_prob)} real) &mdash;
+      <div class="callout">Marcador más probable <b>${r.scoreline.score}</b> (~${pct(r.scoreline.calibrated_prob)} ${probLabel}) &mdash;
       por debajo del 75%: en fútbol ningún marcador exacto llega a ese nivel de confianza. Top 5:</div>
       <div class="top5">${chips}</div>
     `;
@@ -839,18 +944,26 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
     return y0 === y1 ? y0 : `${y0}–${y1}`;
   }
   function seasonBadgeHTML(comp) {
+    if (comp.track === "live") {
+      return `<span class="clock">&#9889;</span> Datos de tabla de <b>${comp.name}</b>, temporada <b>2026-27 en curso</b>
+        (${LIVE.updated}) &mdash; estimación con el mismo modelo Poisson/Dixon-Coles, pero <b>sin calibrar contra un historial</b>
+        (recién ~7-8 fechas jugadas): tomá los porcentajes como orientativos, no como probabilidad validada.`;
+    }
     return `<span class="clock">&#128337;</span> Datos reales de <b>${comp.competition}</b>, temporada${comp.date_min.slice(0,4)===comp.date_max.slice(0,4)?"":"s"}
-      <b>${seasonYears(comp)}</b> (partidos del ${comp.date_min} al ${comp.date_max}) &mdash; no es la temporada en curso, todavía sin partidos suficientes en ninguna fuente gratuita para modelar.`;
+      <b>${seasonYears(comp)}</b> (partidos del ${comp.date_min} al ${comp.date_max}) &mdash; verificado con backtest de calibración
+      (ver evaluate.py); no es la temporada en curso, todavía sin partidos suficientes en ninguna fuente gratuita para modelar así.`;
   }
 
-  function render(r, compName) {
+  function render(r, compLabel) {
     renderHero(r);
     renderResultGrid(r);
     renderTeamStats(r);
     renderPlayers(r);
     $("#report").classList.add("show");
     $("#empty-state").style.display = "none";
-    $("#footer-comp").textContent = `Competición: ${compName} · temporada ${seasonYears(compByName[compName])}`;
+    $("#footer-comp").textContent = r.track === "live"
+      ? `Liga: ${compLabel} · temporada 2026-27 en curso (estimación sin calibrar)`
+      : `Competición: ${compLabel} · temporada ${seasonYears(compByName[compLabel])} (calibrado con backtest)`;
   }
 
   // ---------- UI wiring ----------
@@ -859,41 +972,73 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
   const selAway = $("#sel-away");
   const btn = $("#btn-predict");
 
+  function addOptgroup(label) {
+    const g = document.createElement("optgroup");
+    g.label = label;
+    selComp.appendChild(g);
+    return g;
+  }
+
+  const gHist = addOptgroup("Históricas verificadas (con calibración)");
   DATA.competitions.forEach(c => {
     const opt = el("option");
-    opt.value = c.competition;
+    opt.value = `hist::${c.competition}`;
     opt.textContent = `${c.competition} — ${seasonYears(c)} (${c.teams.length} equipos, ${c.n_matches} partidos)`;
-    selComp.appendChild(opt);
+    gHist.appendChild(opt);
+  });
+
+  const liveGroups = {};
+  Object.values(liveCompByName).forEach(lc => {
+    (liveGroups[lc.group] || (liveGroups[lc.group] = [])).push(lc);
+  });
+  Object.keys(liveGroups).forEach(groupName => {
+    const g = addOptgroup(`En vivo 2026-27 · ${groupName}`);
+    liveGroups[groupName]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(lc => {
+        const opt = el("option");
+        opt.value = `live::${lc.name}`;
+        opt.textContent = `${lc.name} (${Object.keys(lc.teams).length} equipos)`;
+        g.appendChild(opt);
+      });
   });
 
   const totalMatches = DATA.competitions.reduce((s, c) => s + c.n_matches, 0);
-  $("#dataset-meta").innerHTML = `<strong>${DATA.competitions.length}</strong> competiciones &middot; <strong>${totalMatches.toLocaleString("es")}</strong> partidos`;
+  const totalLiveTeams = Object.values(liveCompByName).reduce((s, lc) => s + Object.keys(lc.teams).length, 0);
+  $("#dataset-meta").innerHTML = `<strong>${DATA.competitions.length}</strong> históricas (${totalMatches.toLocaleString("es")} partidos) &middot; ` +
+    `<strong>${Object.keys(liveCompByName).length}</strong> en vivo 2026-27 (${totalLiveTeams.toLocaleString("es")} equipos)`;
 
-  function populateTeams(compName) {
-    const comp = compByName[compName];
+  function resolveSelectedComp() {
+    const [track, name] = selComp.value.split("::");
+    return track === "live" ? liveCompByName[name] : compByName[name];
+  }
+
+  function populateTeams() {
+    const comp = resolveSelectedComp();
+    const teamNames = comp.track === "live" ? Object.keys(comp.teams).sort() : comp.teams;
     [selHome, selAway].forEach(sel => {
       sel.innerHTML = "";
-      comp.teams.forEach(t => {
+      teamNames.forEach(t => {
         const opt = el("option"); opt.value = t; opt.textContent = t;
         sel.appendChild(opt);
       });
     });
-    if (comp.teams.length > 1) selAway.selectedIndex = 1;
+    if (teamNames.length > 1) selAway.selectedIndex = 1;
     $("#season-badge").innerHTML = seasonBadgeHTML(comp);
   }
 
-  selComp.addEventListener("change", () => populateTeams(selComp.value));
-  populateTeams(selComp.value);
+  selComp.addEventListener("change", populateTeams);
+  populateTeams();
 
   btn.addEventListener("click", () => {
-    const comp = compByName[selComp.value];
+    const comp = resolveSelectedComp();
     const home = selHome.value, away = selAway.value;
     if (home === away) {
       alert("Elegí dos equipos distintos.");
       return;
     }
-    const result = predictMatch(comp, home, away);
-    render(result, comp.competition);
+    const result = comp.track === "live" ? predictLiveMatch(comp, home, away) : predictMatch(comp, home, away);
+    render(result, comp.track === "live" ? comp.name : comp.competition);
   });
 })();
 </script>

@@ -163,25 +163,44 @@ python -m futbol.build_web
 
 `web/predictor.html` es una página autocontenida (sin backend, sin conexión
 a internet) donde se elige una competición y los dos equipos desde
-desplegables y se generan al instante todos los mercados de esta sección,
-con el mismo filtro de confianza ≥75%.
+desplegables y se generan al instante todos los mercados de esta sección.
+Combina **dos fuentes con rigor distinto**, agrupadas por separado en el
+desplegable de competición y siempre etiquetadas para que no se confundan:
 
-Cómo funciona: `futbol.export_web` vuelca los modelos ya ajustados de las
-16 competiciones (coeficientes de Dixon-Coles, coeficientes de las Poisson
-de equipo + la forma actual de cada equipo, las cuotas de tiro de cada
-jugador y los puntos de la calibración isotónica) a `web/model_data.json`
-(~1 MB). `futbol.build_web` inyecta ese JSON en `web/predictor_template.html`
-para producir `web/predictor.html`. El archivo final incluye un motor de
-predicción en JavaScript (matriz Dixon-Coles con corrección de marcadores
-bajos, Poisson por línea, interpolación de la calibración isotónica) que
-reproduce el cálculo de `predict.py` **exactamente** — se verificó número
-por número contra la salida del CLI para varios partidos de distintas
-competiciones antes de publicarlo. Al no llamar a ningún servidor, corre
-igual desde este repo que pegado en cualquier navegador.
+- **Históricas verificadas** (16 competiciones StatsBomb de este repo):
+  modelo Dixon-Coles + Poisson **calibrado por backtest walk-forward**
+  (ver [Validación de la confianza](#validación-de-la-confianza-75-100)).
+  Temporadas completas pero no la actual — ver la limitación de arriba.
+- **En vivo, temporada 2026-27** (96 ligas de Europa, Sudamérica,
+  Norte/Centroamérica, Asia y África, más fútbol femenino): tabla de
+  posiciones real de la temporada en curso, tomada del banco de equipos de
+  otro artifact del usuario ("Predictor de Fútbol"), con la misma familia
+  de modelo (Poisson/Dixon-Coles con contracción bayesiana hacia la media
+  de liga para equipos con pocos partidos jugados) pero **sin calibración
+  por backtest** — no hay historial partido a partido de esas ligas para
+  validarla, así que la página lo dice explícitamente y muestra la
+  probabilidad como estimación, no como "real" verificada.
 
-Para actualizar la página después de tocar los modelos o de reingerir
-datos, hay que volver a correr los pasos 5 (`export_web` + `build_web`) —
-no se regenera sola.
+Cómo se genera:
+
+1. `futbol.export_web` vuelca los modelos StatsBomb ya ajustados y
+   calibrados a `web/model_data.json` (~1 MB) — igual que antes.
+2. `futbol.import_live_leagues <html-del-otro-artifact>` convierte el
+   `TEAM_DB` de ese artifact (leído con el Artifact tool, action `read`) a
+   `web/live_leagues.json` (~650 KB): 1595 equipos con goles/tarjetas/
+   tiros/corners de la temporada y sus 5 jugadores principales.
+3. `futbol.build_web` inyecta ambos JSON en `web/predictor_template.html`
+   para producir `web/predictor.html`. El archivo final incluye un motor de
+   predicción en JavaScript que reproduce el cálculo de `predict.py`
+   **exactamente** para el track histórico (se verificó número por número
+   contra la salida del CLI) y replica la metodología del otro artifact
+   (contracción bayesiana, ρ=-0.13, ventaja de local ×1.20) para el track
+   en vivo. Al no llamar a ningún servidor, corre igual desde este repo que
+   pegado en cualquier navegador.
+
+El track "en vivo" es una foto fija del momento en que se corrió el paso 2
+— no se actualiza sola. Hay una rutina semanal (ver más abajo) que la
+reimporta cada vez que el otro artifact se refresca.
 
 ## Cómo funciona
 
