@@ -9,11 +9,12 @@ Modelo que pronostica, para un partido de fútbol:
 - **Corners, tarjetas, tiros totales y tiros a puerta** — por equipo
 - **Tiros y tiros a puerta esperados de los 3 jugadores con más volumen de cada equipo**
 
-Cada pronóstico solo se muestra si su **probabilidad real, validada por
-backtest, está entre el 75% y el 100%** (ver [Validación de la
-confianza](#validación-de-la-confianza-75-100)). Si ningún resultado de un
-mercado alcanza ese umbral, se indica explícitamente en vez de forzar un
-pronóstico poco fiable.
+Cada mercado muestra siempre la mejor estimación disponible con su
+probabilidad real; se marca aparte cuando esa probabilidad, **validada por
+backtest, alcanza el 75%** (ver [Validación de la
+confianza](#validación-de-la-confianza-75-100)) — por debajo de ese umbral
+se sigue mostrando el número, pero señalado como estimación de menor
+confianza en vez de ocultarlo.
 
 ## Fuente de datos
 

@@ -284,6 +284,12 @@
     color: var(--ink);
   }
   .pill.confident .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex: none; }
+  .pill.low {
+    background: var(--surface-2);
+    border: 1px solid var(--line-strong);
+    color: var(--ink-muted);
+  }
+  .pill.low .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); flex: none; }
   .pill.none {
     border: 1px dashed var(--line-strong);
     color: var(--ink-muted);
@@ -450,8 +456,9 @@
   <div class="panel empty-state" id="empty-state">
     <div class="big">&#9917;</div>
     Elegí competición y equipos, y tocá <strong>Predecir</strong>.<br>
-    Solo se muestran mercados con probabilidad &ge; 75% (calibrada con backtest histórico en las
-    ligas verificadas; estimada sin calibrar en las ligas "en vivo" de temporada en curso).
+    Cada pronóstico muestra su probabilidad real; los marcados en <b style="color:var(--gold)">dorado</b> superan
+    el 75% (calibrada con backtest en las ligas verificadas, estimada sin calibrar en las "en vivo" de
+    temporada en curso) — el resto son la mejor estimación disponible, sin llegar a ese umbral.
   </div>
 
   <div id="report">
@@ -667,8 +674,8 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
     let bestSide = null, bestRaw = -1;
     for (const side in probsObj) if (probsObj[side] > bestRaw) { bestRaw = probsObj[side]; bestSide = side; }
     const calibrated = calibrate(bestRaw, family, calibrators);
-    if (calibrated >= CONF_MIN) return { side: bestSide, raw_prob: bestRaw, prob: Math.min(calibrated, 1.0) };
-    return null;
+    const prob = Math.min(calibrated, 1.0);
+    return { side: bestSide, raw_prob: bestRaw, prob, confident: prob >= CONF_MIN };
   }
   function bestLinePick(mu, lines, family, calibrators) {
     let best = null;
@@ -677,10 +684,20 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
       const side = probs.over > probs.under ? "over" : "under";
       const raw = probs[side];
       const calibrated = calibrate(raw, family, calibrators);
-      if (!best || calibrated > best.prob) best = { line, side, raw_prob: raw, prob: Math.min(calibrated, 1.0) };
+      const prob = Math.min(calibrated, 1.0);
+      if (!best || prob > best.prob) best = { line, side, raw_prob: raw, prob };
     });
-    if (best && best.prob >= CONF_MIN) return best;
-    return null;
+    best.confident = best.prob >= CONF_MIN;
+    return best;
+  }
+  function bestGoalsPick(totalGoals, family, calibrators) {
+    let best = null;
+    GOAL_LINES.forEach(line => {
+      const pick = bestCalibratedPick(totalGoals[line], family, calibrators);
+      pick.line = line;
+      if (!best || pick.prob > best.prob) best = pick;
+    });
+    return best;
   }
 
   // ---------- players ----------
@@ -711,15 +728,10 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
       },
       pick_1x2: bestCalibratedPick(dcMarkets.x1x2, "dixon_coles", calibrators),
       pick_btts: bestCalibratedPick(dcMarkets.btts, "dixon_coles", calibrators),
-      goals_picks: {},
+      goals_pick: bestGoalsPick(dcMarkets.total_goals, "dixon_coles", calibrators),
       team_stats: {},
       players: { home: [], away: [] },
     };
-
-    GOAL_LINES.forEach(line => {
-      const pick = bestCalibratedPick(dcMarkets.total_goals[line], "dixon_coles", calibrators);
-      if (pick) result.goals_picks[line] = pick;
-    });
 
     const homeForm = comp.team_form[homeTeam] || {};
     const awayForm = comp.team_form[awayTeam] || {};
@@ -772,15 +784,10 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
       },
       pick_1x2: bestCalibratedPick(dcMarkets.x1x2, "live", {}),
       pick_btts: bestCalibratedPick(dcMarkets.btts, "live", {}),
-      goals_picks: {},
+      goals_pick: bestGoalsPick(dcMarkets.total_goals, "live", {}),
       team_stats: {},
       players: { home: [], away: [] },
     };
-
-    GOAL_LINES.forEach(line => {
-      const pick = bestCalibratedPick(dcMarkets.total_goals[line], "live", {});
-      if (pick) result.goals_picks[line] = pick;
-    });
 
     DATA.stat_targets.forEach(stat => {
       const field = LIVE_FIELD[stat];
@@ -817,10 +824,11 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
     return e;
   }
   function pillHTML(pick, sideMap) {
-    if (!pick) return `<span class="pill none">Sin pronóstico &ge; 75%</span>`;
+    if (!pick) return `<span class="pill none">Sin datos</span>`;
     const sideTxt = (sideMap && sideMap[pick.side]) || pick.side;
     const lineTxt = pick.line !== undefined ? ` ${pick.line}` : "";
-    return `<span class="pill confident"><span class="dot"></span>${sideTxt}${lineTxt} &middot; <span class="pct">${pct(pick.prob)}</span></span>`;
+    const cls = pick.confident ? "confident" : "low";
+    return `<span class="pill ${cls}"><span class="dot"></span>${sideTxt}${lineTxt} &middot; <span class="pct">${pct(pick.prob)}</span></span>`;
   }
 
   function renderHero(r) {
@@ -862,19 +870,10 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
 
     const c3 = el("div", "panel card");
     c3.appendChild(el("h3", null, "Total de goles"));
-    const lines = Object.keys(r.goals_picks);
-    if (lines.length === 0) {
-      c3.appendChild(el("div", null, pillHTML(null)));
-    } else {
-      const stack = el("div", "stack");
-      lines.forEach(line => {
-        const row = el("div", "row-between");
-        row.appendChild(el("span", null, `Línea ${line}`));
-        row.appendChild(el("span", null, pillHTML(r.goals_picks[line], SIDE_LABEL)));
-        stack.appendChild(row);
-      });
-      c3.appendChild(stack);
-    }
+    const goalsRow = el("div", "row-between");
+    goalsRow.appendChild(el("span", null, `Línea ${r.goals_pick.line}`));
+    goalsRow.appendChild(el("span", null, pillHTML(r.goals_pick, SIDE_LABEL)));
+    c3.appendChild(goalsRow);
     grid.appendChild(c3);
   }
 

@@ -35,25 +35,24 @@ def _pct(p: float) -> str:
     return f"{p * 100:.1f}%"
 
 
-def _best_calibrated_pick(pipeline: FutbolPipeline, family: str, probs: dict[str, float]) -> dict | None:
+def _best_calibrated_pick(pipeline: FutbolPipeline, family: str, probs: dict[str, float]) -> dict:
     side, raw = max(probs.items(), key=lambda kv: kv[1])
     calibrated = pipeline.calibrate(raw, family)
-    if calibrated >= CONFIDENCE_MIN:
-        return {"side": side, "raw_prob": raw, "prob": min(calibrated, CONFIDENCE_MAX)}
-    return None
+    prob = min(calibrated, CONFIDENCE_MAX)
+    return {"side": side, "raw_prob": raw, "prob": prob, "confident": prob >= CONFIDENCE_MIN}
 
 
-def _best_line_pick(pipeline: FutbolPipeline, family: str, mu: float, lines: list[float]) -> dict | None:
+def _best_line_pick(pipeline: FutbolPipeline, family: str, mu: float, lines: list[float]) -> dict:
     best = None
     for line in lines:
         probs = line_probabilities(mu, [line])[line]
         side, raw = max(probs.items(), key=lambda kv: kv[1])
         calibrated = pipeline.calibrate(raw, family)
-        if best is None or calibrated > best["prob"]:
-            best = {"line": line, "side": side, "raw_prob": raw, "prob": min(calibrated, CONFIDENCE_MAX)}
-    if best and best["prob"] >= CONFIDENCE_MIN:
-        return best
-    return None
+        prob = min(calibrated, CONFIDENCE_MAX)
+        if best is None or prob > best["prob"]:
+            best = {"line": line, "side": side, "raw_prob": raw, "prob": prob}
+    best["confident"] = best["prob"] >= CONFIDENCE_MIN
+    return best
 
 
 def predict_match(pipeline: FutbolPipeline, home_team: str, away_team: str) -> dict:
@@ -79,12 +78,13 @@ def predict_match(pipeline: FutbolPipeline, home_team: str, away_team: str) -> d
     report["markets"]["1x2"] = _best_calibrated_pick(pipeline, "dixon_coles", markets["1x2"])
     report["markets"]["btts"] = _best_calibrated_pick(pipeline, "dixon_coles", markets["btts"])
 
-    goles_picks = {}
+    goles_pick = None
     for line in GOAL_LINES:
         pick = _best_calibrated_pick(pipeline, "dixon_coles", markets["total_goals"][line])
-        if pick:
-            goles_picks[line] = pick
-    report["markets"]["goles_over_under"] = goles_picks
+        pick["line"] = line
+        if goles_pick is None or pick["prob"] > goles_pick["prob"]:
+            goles_pick = pick
+    report["markets"]["goles_over_under"] = goles_pick
 
     home_form = pipeline.team_form.loc[home_team]
     away_form = pipeline.team_form.loc[away_team]
@@ -125,20 +125,19 @@ def predict_match(pipeline: FutbolPipeline, home_team: str, away_team: str) -> d
     return report
 
 
-def _print_pick(label: str, pick: dict | None, side_map: dict | None = None) -> None:
-    if not pick:
-        print(f"  {label}: sin pronóstico de alta confianza (<{_pct(CONFIDENCE_MIN)})")
-        return
+def _print_pick(label: str, pick: dict, side_map: dict | None = None) -> None:
     side = pick["side"]
     side_txt = side_map.get(side, side) if side_map else side
     line_txt = f" {pick['line']}" if "line" in pick else ""
-    print(f"  {label}: {side_txt}{line_txt}  ->  confianza {_pct(pick['prob'])}")
+    tag = "" if pick["confident"] else f" (no alcanza el umbral de {_pct(CONFIDENCE_MIN)})"
+    print(f"  {label}: {side_txt}{line_txt}  ->  {_pct(pick['prob'])}{tag}")
 
 
 def print_report(report: dict) -> None:
     m = report["markets"]
     print(f"\n=== Pronóstico: {report['home_team']} vs {report['away_team']} ===")
-    print(f"(solo se muestran mercados con probabilidad REAL calibrada >= {_pct(CONFIDENCE_MIN)})\n")
+    print(f"(picks marcados [{_pct(CONFIDENCE_MIN)}+] están validados por backtest; el resto son "
+          f"la mejor estimación disponible pero no llegan a ese umbral)\n")
 
     sc = m["marcador_mas_probable"]
     ge = sc["goles_esperados"]
@@ -157,11 +156,7 @@ def print_report(report: dict) -> None:
     _print_pick(" ", m["btts"], {"yes": "sí", "no": "no"})
 
     print("\nTotal de goles:")
-    if m["goles_over_under"]:
-        for line, pick in m["goles_over_under"].items():
-            _print_pick(f" línea {line}", pick, SIDE_LABEL)
-    else:
-        print(f"  sin pronóstico de alta confianza (<{_pct(CONFIDENCE_MIN)})")
+    _print_pick(f" línea {m['goles_over_under']['line']}", m["goles_over_under"], SIDE_LABEL)
 
     print("\nEstadísticas por equipo (corners, tarjetas, tiros, tiros a puerta):")
     for stat, data in m["team_stats"].items():
