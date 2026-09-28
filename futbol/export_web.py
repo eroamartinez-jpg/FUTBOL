@@ -64,9 +64,15 @@ def _export_competition(pipeline) -> dict:
             "y": iso.y_thresholds_.tolist(),
         }
 
+    dates = pipeline.matches_df["date"]
+    date_min = dates.min()
+    date_max = dates.max()
+
     return {
         "competition": pipeline.competition,
         "n_matches": int(len(pipeline.matches_df)),
+        "date_min": date_min.strftime("%Y-%m-%d"),
+        "date_max": date_max.strftime("%Y-%m-%d"),
         "teams": sorted(dc.teams_),
         "dixon_coles": {
             "attack": {t: float(v) for t, v in dc.attack_.items()},

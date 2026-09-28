@@ -402,6 +402,22 @@
     color: var(--ink-muted);
     margin: 4px 2px 0;
   }
+
+  .season-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    padding: 0 2px 20px;
+    margin-top: -8px;
+  }
+  .season-badge .clock { flex: none; opacity: .75; }
+  .season-badge b {
+    color: var(--ink);
+    font-weight: 700;
+  }
 </style>
 
 <div class="wrap">
@@ -428,6 +444,8 @@
     </div>
     <button class="predict" id="btn-predict">Predecir</button>
   </div>
+
+  <div class="season-badge" id="season-badge"></div>
 
   <div class="panel empty-state" id="empty-state">
     <div class="big">&#9917;</div>
@@ -816,6 +834,15 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
     });
   }
 
+  function seasonYears(comp) {
+    const y0 = comp.date_min.slice(0, 4), y1 = comp.date_max.slice(0, 4);
+    return y0 === y1 ? y0 : `${y0}–${y1}`;
+  }
+  function seasonBadgeHTML(comp) {
+    return `<span class="clock">&#128337;</span> Datos reales de <b>${comp.competition}</b>, temporada${comp.date_min.slice(0,4)===comp.date_max.slice(0,4)?"":"s"}
+      <b>${seasonYears(comp)}</b> (partidos del ${comp.date_min} al ${comp.date_max}) &mdash; no es la temporada en curso, todavía sin partidos suficientes en ninguna fuente gratuita para modelar.`;
+  }
+
   function render(r, compName) {
     renderHero(r);
     renderResultGrid(r);
@@ -823,7 +850,7 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
     renderPlayers(r);
     $("#report").classList.add("show");
     $("#empty-state").style.display = "none";
-    $("#footer-comp").textContent = `Competición: ${compName}`;
+    $("#footer-comp").textContent = `Competición: ${compName} · temporada ${seasonYears(compByName[compName])}`;
   }
 
   // ---------- UI wiring ----------
@@ -835,7 +862,7 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
   DATA.competitions.forEach(c => {
     const opt = el("option");
     opt.value = c.competition;
-    opt.textContent = `${c.competition} (${c.teams.length} equipos, ${c.n_matches} partidos)`;
+    opt.textContent = `${c.competition} — ${seasonYears(c)} (${c.teams.length} equipos, ${c.n_matches} partidos)`;
     selComp.appendChild(opt);
   });
 
@@ -852,6 +879,7 @@ window.MODEL_DATA = __MODEL_DATA_JSON__;
       });
     });
     if (comp.teams.length > 1) selAway.selectedIndex = 1;
+    $("#season-badge").innerHTML = seasonBadgeHTML(comp);
   }
 
   selComp.addEventListener("change", () => populateTeams(selComp.value));
