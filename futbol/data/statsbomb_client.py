@@ -7,6 +7,7 @@ temporadas completas en futbol.config.COMPETITIONS.
 from __future__ import annotations
 
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -18,10 +19,18 @@ from futbol.config import RAW_DIR, STATSBOMB_BASE_URL
 _SESSION = requests.Session()
 
 
-def _get_json(url: str, timeout: int = 30) -> object:
-    resp = _SESSION.get(url, timeout=timeout)
-    resp.raise_for_status()
-    return resp.json()
+def _get_json(url: str, timeout: int = 30, retries: int = 5) -> object:
+    last_exc = None
+    for attempt in range(retries):
+        try:
+            resp = _SESSION.get(url, timeout=timeout)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.exceptions.RequestException as exc:
+            last_exc = exc
+            if attempt < retries - 1:
+                time.sleep(min(2 ** attempt, 30))
+    raise last_exc
 
 
 def _cached_json(url: str, cache_path: Path, timeout: int = 30) -> object:
@@ -49,17 +58,34 @@ def get_events(match_id: int) -> list[dict]:
     return _cached_json(url, cache_path)
 
 
-def download_events_bulk(match_ids: list[int], max_workers: int = 12) -> dict[int, list[dict]]:
-    """Descarga eventos de muchos partidos en paralelo, usando cache en disco."""
-    results: dict[int, list[dict]] = {}
+def download_events_bulk(match_ids: list[int], max_workers: int = 8) -> dict[int, list[dict]]:
+    """Descarga eventos de muchos partidos en paralelo, usando cache en disco.
 
-    def _load_cached(mid: int) -> tuple[int, list[dict]]:
-        return mid, get_events(mid)
+    Si algún partido falla tras los reintentos (proxy caído, timeout), no
+    aborta el lote entero: lo reintenta en serie al final antes de rendirse.
+    """
+    results: dict[int, list[dict]] = {}
+    failed: list[int] = []
+
+    def _load_cached(mid: int) -> tuple[int, list[dict] | None]:
+        try:
+            return mid, get_events(mid)
+        except requests.exceptions.RequestException:
+            return mid, None
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         futures = {pool.submit(_load_cached, mid): mid for mid in match_ids}
         for fut in tqdm(as_completed(futures), total=len(futures), desc="Descargando eventos"):
             mid, events = fut.result()
-            results[mid] = events
+            if events is None:
+                failed.append(mid)
+            else:
+                results[mid] = events
+
+    for mid in failed:
+        try:
+            results[mid] = get_events(mid)
+        except requests.exceptions.RequestException as exc:
+            print(f"  aviso: no se pudo descargar el partido {mid} tras reintentos ({exc})")
 
     return results
