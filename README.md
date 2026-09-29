@@ -172,15 +172,37 @@ desplegable de competición y siempre etiquetadas para que no se confundan:
   modelo Dixon-Coles + Poisson **calibrado por backtest walk-forward**
   (ver [Validación de la confianza](#validación-de-la-confianza-75-100)).
   Temporadas completas pero no la actual — ver la limitación de arriba.
-- **En vivo, temporada 2026-27** (96 ligas de Europa, Sudamérica,
-  Norte/Centroamérica, Asia y África, más fútbol femenino): tabla de
-  posiciones real de la temporada en curso, tomada del banco de equipos de
-  otro artifact del usuario ("Predictor de Fútbol"), con la misma familia
-  de modelo (Poisson/Dixon-Coles con contracción bayesiana hacia la media
-  de liga para equipos con pocos partidos jugados) pero **sin calibración
-  por backtest** — no hay historial partido a partido de esas ligas para
-  validarla, así que la página lo dice explícitamente y muestra la
-  probabilidad como estimación, no como "real" verificada.
+- **En vivo, temporada 2026-27** (117 ligas/competiciones — 114
+  seleccionables, ya que 3 quedaron con un solo equipo relevado — de
+  Europa, Sudamérica, Norte/Centroamérica, Asia, África y fútbol femenino,
+  1946 equipos/selecciones en total): tabla de posiciones real de la
+  temporada en curso, con la misma familia de modelo (Poisson/Dixon-Coles
+  con contracción bayesiana hacia la media de liga para equipos con pocos
+  partidos jugados) pero **sin calibración por backtest** — no hay
+  historial partido a partido de estas ligas para validarla, así que la
+  página lo dice explícitamente y muestra la probabilidad como estimación,
+  no como "real" verificada. Dentro de este track hay dos niveles de dato:
+  - **96 ligas / 1595 equipos**: tomadas del banco de equipos de otro
+    artifact del usuario ("Predictor de Fútbol"), que sí trae
+    goles/tarjetas/tiros/corners reales de la temporada y sus 5 jugadores
+    principales por equipo.
+  - **21 ligas/competiciones adicionales / 351 equipos y selecciones**
+    (Liga de Irlanda, Cymru Premier de Gales, ligas menores de Europa del
+    Este —Bulgaria, Azerbaiyán, Rumanía 2ª división—, Liga de Irán, ligas
+    de África —Zambia, Costa de Marfil y otras—, Asia/Oceanía —Malasia,
+    Nueva Zelanda—, Jamaica, Panamá, la UEFA Women's Champions League y la
+    UEFA Nations League 2026-27 de selecciones, entre otras) agregadas por
+    `futbol/merge_manual_leagues.py` a partir de tablas de posiciones
+    reales investigadas manualmente (PJ/PG/PE/PP/GF/GC, con fuente). Estas
+    ligas **no tienen dato real de tarjetas, tiros, tiros a puerta,
+    corners ni jugadores** — se estiman a partir del promedio observado en
+    las 1595 equipos del banco principal, escalado por el nivel de ataque
+    de cada equipo relativo al promedio de su liga (ver el docstring de
+    `merge_manual_leagues.py` para la fórmula exacta) y los 3 jugadores por
+    equipo son placeholders genéricos ("Jugador ofensivo N") con tiros
+    proporcionales a esa estimación. La página no lo oculta: son igual de
+    "estimación, no verificada" que el resto del track en vivo, solo que
+    con un escalón más de aproximación en 4 de los mercados.
 
 Cómo se genera:
 
@@ -188,20 +210,42 @@ Cómo se genera:
    calibrados a `web/model_data.json` (~1 MB) — igual que antes.
 2. `futbol.import_live_leagues <html-del-otro-artifact>` convierte el
    `TEAM_DB` de ese artifact (leído con el Artifact tool, action `read`) a
-   `web/live_leagues.json` (~650 KB): 1595 equipos con goles/tarjetas/
-   tiros/corners de la temporada y sus 5 jugadores principales.
-3. `futbol.build_web` inyecta ambos JSON en `web/predictor_template.html`
-   para producir `web/predictor.html`. El archivo final incluye un motor de
-   predicción en JavaScript que reproduce el cálculo de `predict.py`
-   **exactamente** para el track histórico (se verificó número por número
-   contra la salida del CLI) y replica la metodología del otro artifact
-   (contracción bayesiana, ρ=-0.13, ventaja de local ×1.20) para el track
-   en vivo. Al no llamar a ningún servidor, corre igual desde este repo que
-   pegado en cualquier navegador.
+   `web/live_leagues.json`: 96 ligas / 1595 equipos con goles/tarjetas/
+   tiros/corners de la temporada y sus 5 jugadores principales. **Este
+   paso sobrescribe el archivo desde cero**, así que siempre hay que
+   correr el paso 3 después para no perder las ligas manuales.
+3. `futbol.merge_manual_leagues` agrega las 21 ligas/competiciones de
+   `futbol/data/manual_leagues_2026_data.py` a ese mismo
+   `web/live_leagues.json` (salta las que ya existan por nombre), dejando
+   117 ligas / 1946 equipos en total.
+4. `futbol.build_web` inyecta `model_data.json` y `live_leagues.json` en
+   `web/predictor_template.html` para producir `web/predictor.html`. El
+   archivo final incluye un motor de predicción en JavaScript que
+   reproduce el cálculo de `predict.py` **exactamente** para el track
+   histórico (se verificó número por número contra la salida del CLI) y
+   replica la metodología del otro artifact (contracción bayesiana,
+   ρ=-0.13, ventaja de local ×1.20) para el track en vivo. Al no llamar a
+   ningún servidor, corre igual desde este repo que pegado en cualquier
+   navegador.
 
-El track "en vivo" es una foto fija del momento en que se corrió el paso 2
-— no se actualiza sola. Hay una rutina semanal (ver más abajo) que la
-reimporta cada vez que el otro artifact se refresca.
+El track "en vivo" es una foto fija del momento en que se corrieron los
+pasos 2-3 — no se actualiza sola. Hay una rutina semanal (ver más abajo)
+que la reimporta cada vez que el otro artifact se refresca; esa rutina
+tiene que correr **siempre los pasos 2 y 3 en ese orden**, nunca solo el 2,
+o las 21 ligas manuales desaparecerían la siguiente vez que se sincroniza.
+
+### Primer tiempo (HT)
+
+La página tiene un selector "Partido completo / Primer tiempo" que recalcula
+los mismos mercados (marcador, 1X2, goles, BTTS, corners, tarjetas, tiros,
+jugadores) para el primer tiempo, en los dos tracks (histórico y en vivo).
+No hay dato real de "solo primer tiempo" a nivel liga en ninguno de los dos
+tracks, así que se aplica un factor fijo `HT_SHARE = 0.45` sobre el gol/tiro/
+corner/tarjeta esperado de partido completo (los datos disponibles de
+fútbol en general muestran que el primer tiempo concentra algo menos de la
+mitad del volumen del partido) y esas probabilidades de HT **no están
+calibradas por backtest** en ningún caso — se muestran siempre como
+estimación, igual que el resto del track en vivo.
 
 ## Cómo funciona
 
