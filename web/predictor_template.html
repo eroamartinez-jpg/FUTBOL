@@ -111,7 +111,7 @@
   .controls {
     padding: 18px;
     display: grid;
-    grid-template-columns: 1.3fr 1fr 1fr auto;
+    grid-template-columns: 1.3fr 1fr 1fr auto auto;
     gap: 12px;
     align-items: end;
     margin-bottom: 24px;
@@ -119,6 +119,28 @@
   @media (max-width: 760px) {
     .controls { grid-template-columns: 1fr 1fr; }
     .controls .swap-btn { display: none; }
+  }
+  .half-toggle {
+    display: flex;
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .half-toggle button {
+    flex: 1;
+    background: var(--surface-2);
+    color: var(--ink-muted);
+    border: none;
+    padding: 10px 14px;
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .half-toggle button.active {
+    background: var(--accent);
+    color: var(--accent-ink);
   }
   .field label {
     display: block;
@@ -448,6 +470,13 @@
       <label for="sel-away">Equipo visitante</label>
       <select id="sel-away"></select>
     </div>
+    <div class="field">
+      <label id="half-label" for="btn-half-ft">Tiempo</label>
+      <div class="half-toggle" role="group" aria-labelledby="half-label">
+        <button type="button" id="btn-half-ft" class="active" aria-pressed="true">Partido completo</button>
+        <button type="button" id="btn-half-ht" aria-pressed="false">1er tiempo</button>
+      </div>
+    </div>
     <button class="predict" id="btn-predict">Predecir</button>
   </div>
 
@@ -619,7 +648,7 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
     return K_BASE + extra;
   }
   function clampNum(v, min, max) { return Math.max(min, Math.min(max, v)); }
-  function computeLiveMarkets(live, home, away) {
+  function liveExpectedGoals(live, home, away) {
     const leaguePerTeam = live.leagueAvgPerTeam;
     const kH = dynamicShrink(home.pj), kA = dynamicShrink(away.pj);
     const hGF = (home.gf + kH * leaguePerTeam) / (home.pj + kH);
@@ -630,6 +659,10 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
     const atkA = aGF / leaguePerTeam, defA = aGC / leaguePerTeam;
     const lam = clampNum(atkH * defA * leaguePerTeam * live.hfa, 0.15, 5.5);
     const mu = clampNum(atkA * defH * leaguePerTeam, 0.15, 5.5);
+    return [lam, mu];
+  }
+  function computeLiveMarkets(live, home, away) {
+    const [lam, mu] = liveExpectedGoals(live, home, away);
     const matrix = buildScorelineMatrix(lam, mu, live.rho, live.maxGoals);
     return marketsFromMatrix(matrix, lam, mu);
   }
@@ -762,7 +795,70 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
     return result;
   }
 
-  // ---------- predicción Track B (ligas en vivo) ----------
+  // ---------- Primer tiempo (HT) ----------
+  // Aproximación estándar en análisis de fútbol: el primer tiempo concentra
+  // ~45% de la producción de un partido (goles, tiros, corners, tarjetas) —
+  // mismo valor por defecto que usa el banco "en vivo" de origen para este
+  // mercado. No es un modelo ajustado por separado con datos de solo-1T (no
+  // hay backtest específico de primer tiempo), así que estas probabilidades
+  // se muestran siempre sin calibrar, igual que el track "en vivo".
+  const HT_SHARE = 0.45;
+
+  function predictMatchHT(comp, homeTeam, awayTeam) {
+    const dc = comp.dixon_coles;
+    const [lamFT, muFT] = expectedGoals(dc, homeTeam, awayTeam);
+    const lam = lamFT * HT_SHARE, mu = muFT * HT_SHARE;
+    const matrix = buildScorelineMatrix(lam, mu, dc.rho, dc.max_goals);
+    const dcMarkets = marketsFromMatrix(matrix, lam, mu);
+
+    const result = {
+      home_team: homeTeam, away_team: awayTeam, half: "HT",
+      scoreline: {
+        score: dcMarkets.most_likely_score,
+        prob: dcMarkets.most_likely_score_prob,
+        calibrated_prob: dcMarkets.most_likely_score_prob,
+        top5: dcMarkets.top_scorelines,
+        xg_home: lam, xg_away: mu,
+      },
+      pick_1x2: bestCalibratedPick(dcMarkets.x1x2, "ht", {}),
+      pick_btts: bestCalibratedPick(dcMarkets.btts, "ht", {}),
+      goals_pick: bestGoalsPick(dcMarkets.total_goals, "ht", {}),
+      team_stats: {},
+      players: { home: [], away: [] },
+    };
+
+    const homeForm = comp.team_form[homeTeam] || {};
+    const awayForm = comp.team_form[awayTeam] || {};
+
+    DATA.stat_targets.forEach(stat => {
+      const model = comp.poisson_models[stat];
+      const muHome = poissonMean(model, true, homeForm, awayForm, stat) * HT_SHARE;
+      const muAway = poissonMean(model, false, awayForm, homeForm, stat) * HT_SHARE;
+      result.team_stats[stat] = {
+        mu_home: muHome, mu_away: muAway,
+        pick_home: bestLinePick(muHome, TEAM_STAT_LINES[stat], "ht", {}),
+        pick_away: bestLinePick(muAway, TEAM_STAT_LINES[stat], "ht", {}),
+      };
+    });
+
+    const muShotsHome = result.team_stats.shots.mu_home, muShotsAway = result.team_stats.shots.mu_away;
+    const muSotHome = result.team_stats.shots_on_target.mu_home, muSotAway = result.team_stats.shots_on_target.mu_away;
+
+    // projectPlayers ya espera mu_shots/mu_sot del partido completo para
+    // repartir la cuota de cada jugador — como aquí ya vienen escalados a
+    // 1T, el resultado sale directamente en escala de primer tiempo.
+    const homePlayers = projectPlayers(comp, homeTeam, homeForm, muShotsHome, muSotHome, 3);
+    const awayPlayers = projectPlayers(comp, awayTeam, awayForm, muShotsAway, muSotAway, 3);
+    [homePlayers, awayPlayers].forEach(list => list.forEach(p => {
+      p.shots_pick = bestLinePick(p.proj_shots, PLAYER_SHOT_LINES, "ht", {});
+      p.sot_pick = bestLinePick(p.proj_sot, PLAYER_SOT_LINES, "ht", {});
+    }));
+    result.players.home = homePlayers;
+    result.players.away = awayPlayers;
+
+    return result;
+  }
+
   const LIVE_FIELD = { cards: "cards", shots: "shots", shots_on_target: "sot", corners: "corners" };
 
   function predictLiveMatch(liveComp, homeName, awayName) {
@@ -814,6 +910,56 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
     return result;
   }
 
+  function predictLiveMatchHT(liveComp, homeName, awayName) {
+    const home = liveComp.teams[homeName];
+    const away = liveComp.teams[awayName];
+    const liveParams = { leagueAvgPerTeam: liveComp.leagueAvgPerTeam, hfa: LIVE.home_advantage, rho: LIVE.rho, maxGoals: LIVE.max_goals };
+    const [lamFT, muFT] = liveExpectedGoals(liveParams, home, away);
+    const lam = lamFT * HT_SHARE, mu = muFT * HT_SHARE;
+    const matrix = buildScorelineMatrix(lam, mu, liveParams.rho, liveParams.maxGoals);
+    const dcMarkets = marketsFromMatrix(matrix, lam, mu);
+
+    const result = {
+      home_team: homeName, away_team: awayName, track: "live", half: "HT",
+      scoreline: {
+        score: dcMarkets.most_likely_score,
+        prob: dcMarkets.most_likely_score_prob,
+        calibrated_prob: dcMarkets.most_likely_score_prob,
+        top5: dcMarkets.top_scorelines,
+        xg_home: lam, xg_away: mu,
+      },
+      pick_1x2: bestCalibratedPick(dcMarkets.x1x2, "ht", {}),
+      pick_btts: bestCalibratedPick(dcMarkets.btts, "ht", {}),
+      goals_pick: bestGoalsPick(dcMarkets.total_goals, "ht", {}),
+      team_stats: {},
+      players: { home: [], away: [] },
+    };
+
+    DATA.stat_targets.forEach(stat => {
+      const field = LIVE_FIELD[stat];
+      const muHome = home[field] * HT_SHARE, muAway = away[field] * HT_SHARE;
+      result.team_stats[stat] = {
+        mu_home: muHome, mu_away: muAway,
+        pick_home: bestLinePick(muHome, TEAM_STAT_LINES[stat], "ht", {}),
+        pick_away: bestLinePick(muAway, TEAM_STAT_LINES[stat], "ht", {}),
+      };
+    });
+
+    function playersForHT(team) {
+      const top = (team.players || []).slice().sort((a, b) => b.shots - a.shots).slice(0, 3);
+      return top.map(p => ({
+        name: p.name, matches: team.pj,
+        proj_shots: p.shots * HT_SHARE, proj_sot: p.sot * HT_SHARE,
+        shots_pick: bestLinePick(p.shots * HT_SHARE, PLAYER_SHOT_LINES, "ht", {}),
+        sot_pick: bestLinePick(p.sot * HT_SHARE, PLAYER_SOT_LINES, "ht", {}),
+      }));
+    }
+    result.players.home = playersForHT(home);
+    result.players.away = playersForHT(away);
+
+    return result;
+  }
+
   // ---------- rendering ----------
   const $ = sel => document.querySelector(sel);
   function pct(p) { return (p * 100).toFixed(1) + "%"; }
@@ -833,20 +979,24 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
 
   function renderHero(r) {
     const hero = $("#hero");
+    const halfLabel = r.half === "HT" ? "Goles esperados (1er tiempo)" : "Goles esperados";
     hero.innerHTML = `
       <div class="team"><div class="role">Local</div><div class="name">${r.home_team}</div></div>
       <div class="xg">
         <div class="score">${r.scoreline.xg_home.toFixed(2)} &ndash; ${r.scoreline.xg_away.toFixed(2)}</div>
-        <div class="label">Goles esperados</div>
+        <div class="label">${halfLabel}</div>
       </div>
       <div class="team"><div class="role">Visitante</div><div class="name">${r.away_team}</div></div>
     `;
 
     const note = $("#scoreline-note");
     const chips = r.scoreline.top5.map(s => `<span class="chip"><span class="sc">${s.score}</span><span class="pc">${pct(s.prob)}</span></span>`).join("");
-    const probLabel = r.track === "live" ? "estimada" : "real";
+    const probLabel = (r.track === "live" || r.half === "HT") ? "estimada" : "real";
+    const halfNote = r.half === "HT"
+      ? ` (marcador al descanso, aproximado escalando el modelo del partido completo a ${(HT_SHARE*100).toFixed(0)}% &mdash; sin calibrar)`
+      : "";
     note.innerHTML = `
-      <div class="callout">Marcador más probable <b>${r.scoreline.score}</b> (~${pct(r.scoreline.calibrated_prob)} ${probLabel}) &mdash;
+      <div class="callout">Marcador más probable${halfNote} <b>${r.scoreline.score}</b> (~${pct(r.scoreline.calibrated_prob)} ${probLabel}) &mdash;
       por debajo del 75%: en fútbol ningún marcador exacto llega a ese nivel de confianza. Top 5:</div>
       <div class="top5">${chips}</div>
     `;
@@ -960,9 +1110,10 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
     renderPlayers(r);
     $("#report").classList.add("show");
     $("#empty-state").style.display = "none";
-    $("#footer-comp").textContent = r.track === "live"
+    const halfTxt = r.half === "HT" ? " · 1er tiempo (estimado, sin calibrar)" : "";
+    $("#footer-comp").textContent = (r.track === "live"
       ? `Liga: ${compLabel} · temporada 2026-27 en curso (estimación sin calibrar)`
-      : `Competición: ${compLabel} · temporada ${seasonYears(compByName[compLabel])} (calibrado con backtest)`;
+      : `Competición: ${compLabel} · temporada ${seasonYears(compByName[compLabel])} (calibrado con backtest)`) + halfTxt;
   }
 
   // ---------- UI wiring ----------
@@ -970,6 +1121,19 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
   const selHome = $("#sel-home");
   const selAway = $("#sel-away");
   const btn = $("#btn-predict");
+  const btnHalfFT = $("#btn-half-ft");
+  const btnHalfHT = $("#btn-half-ht");
+  let currentHalf = "FT";
+
+  function setHalf(half) {
+    currentHalf = half;
+    btnHalfFT.classList.toggle("active", half === "FT");
+    btnHalfFT.setAttribute("aria-pressed", half === "FT");
+    btnHalfHT.classList.toggle("active", half === "HT");
+    btnHalfHT.setAttribute("aria-pressed", half === "HT");
+  }
+  btnHalfFT.addEventListener("click", () => setHalf("FT"));
+  btnHalfHT.addEventListener("click", () => setHalf("HT"));
 
   function addOptgroup(label) {
     const g = document.createElement("optgroup");
@@ -1036,8 +1200,11 @@ window.LIVE_DATA = __LIVE_DATA_JSON__;
       alert("Elegí dos equipos distintos.");
       return;
     }
-    const result = comp.track === "live" ? predictLiveMatch(comp, home, away) : predictMatch(comp, home, away);
-    render(result, comp.track === "live" ? comp.name : comp.competition);
+    const isLive = comp.track === "live";
+    const result = currentHalf === "HT"
+      ? (isLive ? predictLiveMatchHT(comp, home, away) : predictMatchHT(comp, home, away))
+      : (isLive ? predictLiveMatch(comp, home, away) : predictMatch(comp, home, away));
+    render(result, isLive ? comp.name : comp.competition);
   });
 })();
 </script>
