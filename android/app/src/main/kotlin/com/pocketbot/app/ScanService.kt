@@ -88,11 +88,13 @@ class ScanService : Service() {
                 if (client == null || !client.isOpen) {
                     client?.close()
                     setStatus("Conectando con Pocket Option…")
-                    client = PocketClient(ssid, ua).also { it.connect() }
-                    BotState.update { it.copy(accountDemo = client.isDemo) }
-                    if (!client.awaitAssets()) throw java.io.IOException("no llegó la lista de activos")
+                    val fresh = PocketClient(ssid, ua)
+                    client = fresh
+                    fresh.connect()
+                    BotState.update { it.copy(accountDemo = fresh.isDemo) }
+                    if (!fresh.awaitAssets()) throw java.io.IOException("no llegó la lista de activos")
                 }
-                scanOnce(client, prefs.scanConfig(), prefs.otcOnly)
+                scanOnce(client!!, prefs.scanConfig(), prefs.otcOnly)
                 failures = 0
                 sleepUntilNextCandle(prefs.periodS)
             } catch (e: InterruptedException) {
