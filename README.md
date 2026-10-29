@@ -16,6 +16,10 @@ confianza](#validación-de-la-confianza-75-100)) — por debajo de ese umbral
 se sigue mostrando el número, pero señalado como estimación de menor
 confianza en vez de ocultarlo.
 
+> Este repositorio incluye además [`pocket_bot/`](pocket_bot/README.md), un
+> bot de señales de tendencia para Pocket Option (independiente del modelo de
+> fútbol).
+
 ## Fuente de datos
 
 **[StatsBomb Open Data](https://github.com/statsbomb/open-data)**, gratuita
