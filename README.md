@@ -308,6 +308,52 @@ python -m futbol.bot report --ledger mi_bot.json
 eficiente; `Max` (mejor cuota de todas las casas) infla los resultados
 porque en la práctica no siempre se puede conseguir.
 
+### Cuotas de Rushbet vía TinyFish
+
+Rushbet (Colombia) no tiene API para terceros: su plataforma (Kambi)
+responde 429 a peticiones directas. Las cuotas se leen de su sportsbook
+público con un navegador automatizado de **TinyFish** (`run_web_automation`,
+proxy en Colombia), **sin iniciar sesión y sin apostar**, pidiendo un JSON
+con `home_team`, `away_team`, `date`/`kickoff`, `odds_home`, `odds_draw`,
+`odds_away`, `odds_over25`, `odds_under25`. Luego:
+
+```bash
+# JSON de TinyFish -> CSV de próximos partidos con nombres de football-data
+python -m futbol.bot.rushbet data/rushbet/E0_2026-10-29.json --competition E0 \
+    --history data/odds/E0_2526.csv data/odds/E0_2627.csv \
+    --out data/rushbet/fixtures_E0.csv --today 2026-10-29
+
+# Escanear y registrar (paper) contra la banca simulada
+python -m futbol.bot scan --history data/odds/E0_2425.csv data/odds/E0_2526.csv data/odds/E0_2627.csv \
+    --fixtures data/rushbet/fixtures_E0.csv --ledger data/rushbet/ledger_rushbet.json --place
+```
+
+Los históricos de football-data.co.uk también se descargan con TinyFish
+(`fetch_content`), ya que este entorno no tiene salida directa a esa web;
+se guardan en `data/odds/` (no versionado). Si Rushbet escribe un equipo de
+forma que no se reconoce, el conversor lo avisa y hay que añadirlo a
+`ALIASES` en `futbol/bot/rushbet.py`.
+
+### Resultado del backtest con datos reales (Premier League + La Liga)
+
+Backtest walk-forward de 2023/24 a 2025/26 (2 280 partidos con cuotas
+reales, estrategia por defecto, banca inicial 1 000):
+
+| Precio de entrada | Apuestas | Yield | Banca final | CLV medio |
+|---|---|---|---|---|
+| Pinnacle (`--book PS`) | 1 328 | **−5.6%** | 86 | −0.9% |
+| Bet365 (`--book B365`, incl. 2026/27) | 1 620 | **−8.9%** | 31 | 0.0% |
+| Pinnacle, solo 1X2, conservadora¹ | 483 | **−3.8%** | 941 | −0.9% |
+
+¹ `--markets 1x2 --max-disagreement 0.05 --min-edge 0.03 --kelly 0.1 --max-stake 0.01`
+
+**El modelo no le gana al mercado en estas ligas.** El edge medio que
+estima (8-18%) es ilusorio: el CLV es ~0 o negativo, o sea que sus
+"apuestas de valor" no consiguen mejor precio que el de cierre. El
+over/under 2.5 es el peor mercado (−8.6% / −11.9%). Úsalo solo como
+herramienta de paper trading y para iterar el modelo; no con dinero real
+mientras el backtest no salga positivo.
+
 ### Advertencias
 
 - **El backtest manda.** Un Dixon-Coles solo con goles es un modelo

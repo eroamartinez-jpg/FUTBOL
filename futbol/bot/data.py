@@ -47,6 +47,14 @@ def _odds_columns(book: str, closing: bool) -> dict[tuple[str, str], str]:
     }
 
 
+def _parse_dates(col: pd.Series) -> pd.Series:
+    """football-data usa dd/mm/yy(yy); los CSV propios (p. ej. Rushbet) usan ISO yyyy-mm-dd."""
+    text = col.astype(str)
+    if text.str.match(r"^\d{4}-\d{2}-\d{2}").all():
+        return pd.to_datetime(text.str[:10], format="%Y-%m-%d")
+    return pd.to_datetime(text, dayfirst=True, format="mixed")
+
+
 def load_matches(paths: list[str | Path]) -> pd.DataFrame:
     """Concatena uno o varios CSV y normaliza nombres de columnas y fecha."""
     frames = []
@@ -56,7 +64,7 @@ def load_matches(paths: list[str | Path]) -> pd.DataFrame:
         df = df.rename(columns={"HomeTeam": "home_team", "AwayTeam": "away_team",
                                 "FTHG": "home_goals", "FTAG": "away_goals",
                                 "Date": "date", "Div": "competition"})
-        df["date"] = pd.to_datetime(df["date"], dayfirst=True, format="mixed")
+        df["date"] = _parse_dates(df["date"])
         if "competition" not in df.columns:
             df["competition"] = Path(path).stem
         frames.append(df)
@@ -65,14 +73,19 @@ def load_matches(paths: list[str | Path]) -> pd.DataFrame:
 
 
 def row_odds(row: pd.Series, book: str, closing: bool = False) -> dict[str, dict[str, float]]:
-    """Cuotas válidas de una fila como {mercado: {selección: cuota}}."""
-    cols = {} if closing else dict(GENERIC_COLUMNS)
-    cols.update(_odds_columns(book, closing))
+    """Cuotas válidas de una fila como {mercado: {selección: cuota}}.
+
+    Usa las columnas de la casa `book`; si una falta, cae a la columna
+    genérica (odds_home, ...), que es como llegan las cuotas de Rushbet.
+    """
+    book_cols = _odds_columns(book, closing)
     out: dict[str, dict[str, float]] = {}
-    for (market, sel), col in cols.items():
-        val = row.get(col)
-        if val is not None and pd.notna(val) and float(val) > 1.0:
-            out.setdefault(market, {})[sel] = float(val)
+    for key in dict.fromkeys([*book_cols, *([] if closing else GENERIC_COLUMNS)]):
+        for col in (book_cols.get(key), None if closing else GENERIC_COLUMNS.get(key)):
+            val = row.get(col) if col else None
+            if val is not None and pd.notna(val) and float(val) > 1.0:
+                out.setdefault(key[0], {})[key[1]] = float(val)
+                break
     return out
 
 

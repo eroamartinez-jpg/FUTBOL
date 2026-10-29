@@ -7,3 +7,4 @@ web/model_data.json
 web/predictor.html
 *.egg-info/
 .pytest_cache/
+data/odds/

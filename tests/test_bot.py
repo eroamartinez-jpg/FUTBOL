@@ -83,6 +83,10 @@ def test_row_odds_football_data_columns():
     assert row_odds(row, "PS") == {"1x2": {"home": 2.1, "draw": 3.3, "away": 3.6},
                                    "ou2.5": {"over": 1.9, "under": 1.95}}
     assert row_odds(row, "PS", closing=True) == {"1x2": {"home": 2.0, "draw": 3.4, "away": 3.8}}
+    generic = pd.Series({"odds_home": 1.9, "odds_draw": 3.5, "odds_away": 4.0, "odds_over25": 1.8,
+                         "odds_under25": float("nan")})
+    assert row_odds(generic, "B365") == {"1x2": {"home": 1.9, "draw": 3.5, "away": 4.0},
+                                         "ou2.5": {"over": 1.8}}
 
 
 def _synthetic_season(seed=0, n_teams=12):
@@ -118,3 +122,38 @@ def test_backtest_runs_end_to_end_without_lookahead():
     first_bet = min(pd.Timestamp(b["date"]) for b in ledger.bets)
     assert (df["date"] < first_bet).sum() >= 40
     assert s["bankroll"] == pytest.approx(1000.0 + s["pnl"])
+
+
+def test_rushbet_team_mapping_and_kickoff():
+    from datetime import date
+    from futbol.bot.rushbet import map_team, parse_kickoff, to_fixtures
+    known = ["Man United", "Nott'm Forest", "Ath Madrid", "Arsenal", "Brighton", "Sociedad"]
+    assert map_team("Manchester United", known) == "Man United"
+    assert map_team("Nottingham Forest", known) == "Nott'm Forest"
+    assert map_team("Atlético de Madrid", known) == "Ath Madrid"
+    assert map_team("Arsenal FC", known) == "Arsenal"
+    assert map_team("Equipo Inventado", known) is None
+    thu = date(2026, 10, 29)
+    assert parse_kickoff("Sáb 09:00", thu) == date(2026, 10, 31)
+    assert parse_kickoff("Hoy 14:00", thu) == thu
+    assert parse_kickoff("2 nov", thu) == date(2026, 11, 2)
+    assert parse_kickoff("sábado 31 de octubre", thu) == date(2026, 10, 31)
+    assert parse_kickoff("8 de noviembre", thu) == date(2026, 11, 8)
+    df, skipped = to_fixtures({"matches": [
+        {"kickoff": "Sáb 09:00", "home_team": "Arsenal", "away_team": "Real Sociedad",
+         "odds_home": 1.5, "odds_draw": 4.0, "odds_away": 6.0, "total_line": 2.5,
+         "odds_over": 1.8, "odds_under": 2.0},
+        {"home_team": "X", "away_team": "Arsenal", "odds_home": 2, "odds_draw": 3, "odds_away": 4}]},
+        "E0", known, thu)
+    assert len(df) == 1 and skipped == ["X vs Arsenal"]
+    assert df.iloc[0]["away_team"] == "Sociedad" and df.iloc[0]["odds_over25"] == 1.8
+
+
+def test_load_matches_parses_iso_and_football_data_dates(tmp_path):
+    from futbol.bot.data import load_matches
+    iso = tmp_path / "iso.csv"
+    iso.write_text("date,home_team,away_team,odds_home\n2026-11-08,A,B,2.0\n2026-10-31,C,D,2.0\n")
+    fd = tmp_path / "fd.csv"
+    fd.write_text("Div,Date,HomeTeam,AwayTeam,FTHG,FTAG\nE0,08/11/2026,A,B,1,0\nE0,31/10/26,C,D,0,0\n")
+    assert list(load_matches([iso])["date"].dt.strftime("%Y-%m-%d")) == ["2026-10-31", "2026-11-08"]
+    assert list(load_matches([fd])["date"].dt.strftime("%Y-%m-%d")) == ["2026-10-31", "2026-11-08"]
