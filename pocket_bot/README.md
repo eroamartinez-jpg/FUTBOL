@@ -24,6 +24,27 @@
 4. **Indica la hora de entrada** (apertura de la próxima vela), la hora de
    expiración y los segundos que faltan, en tu zona horaria.
 
+## Ejecutable (sin instalar Python)
+
+Cada cambio en `pocket_bot/` compila automáticamente ejecutables para
+**Windows (`pocket_bot.exe`)**, **macOS** y **Linux** en GitHub Actions
+(workflow *Ejecutables pocket_bot*):
+
+1. En GitHub, pestaña **Actions** → *Ejecutables pocket_bot* → la ejecución más reciente en verde.
+2. Al final, en **Artifacts**, descarga `pocket_bot-windows` (o tu sistema) y descomprime el zip.
+3. Abre `pocket_bot.exe` con doble clic. Te pregunta SSID (vacío = demo de
+   invitado), zona horaria, temporalidad, expiración y payout mínimo, y se
+   queda escaneando en cada vela. Ciérralo con Ctrl+C.
+
+Windows puede mostrar "Windows protegió su PC" porque el ejecutable no está
+firmado: *Más información → Ejecutar de todas formas*. En macOS/Linux:
+`chmod +x pocket_bot && ./pocket_bot` (en macOS, la primera vez clic
+derecho → Abrir). También acepta las mismas opciones de la línea de
+comandos, p. ej. `pocket_bot.exe --period 300 --tz America/Bogota`.
+
+Para compilarlo tú mismo: `pip install pyinstaller` y luego
+`pyinstaller pocket_bot/pocket_bot.spec` (el resultado queda en `dist/`).
+
 ## Instalación
 
 ```bash

@@ -1,0 +1,46 @@
+name: Ejecutables pocket_bot
+
+on:
+  push:
+    paths:
+      - "pocket_bot/**"
+      - ".github/workflows/pocket_bot_build.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: pocket_bot-windows
+            exe: dist/pocket_bot.exe
+          - os: macos-latest
+            name: pocket_bot-macos
+            exe: dist/pocket_bot
+          - os: ubuntu-latest
+            name: pocket_bot-linux
+            exe: dist/pocket_bot
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r pocket_bot/requirements.txt pyinstaller pytest
+      - name: Pruebas
+        run: python -m pytest -q tests/test_pocket_bot.py
+      - name: Compilar ejecutable
+        run: pyinstaller --noconfirm pocket_bot/pocket_bot.spec
+      - name: Probar ejecutable (datos sintéticos)
+        shell: bash
+        run: ${{ matrix.exe }} --synthetic --all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.exe }}
+          retention-days: 30

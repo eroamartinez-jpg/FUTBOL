@@ -10,6 +10,7 @@ import argparse
 import sys
 import time
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from .scanner import Opportunity, scan
 from .timing import next_candle_open
@@ -75,7 +76,7 @@ def run_once(source, args) -> list[Opportunity]:
     opps = scan(source, args.period, args.expiry, args.min_payout, args.min_confidence,
                 args.min_trades, args.count, args.max_assets, args.tz,
                 immediate=args.auto_trade, on_error=lambda a, e: errors.append((a, e)))
-    now = datetime.now().astimezone()
+    now = datetime.now(ZoneInfo(args.tz)) if args.tz else datetime.now().astimezone()
     print(f"\n=== Escaneo {now:%Y-%m-%d %H:%M:%S %Z} | M{args.period // 60 or args.period} | "
           f"{len(opps)} activos analizados | expiración {args.expiry} vela(s) ===")
     print_table(opps, args.top, args.all)
