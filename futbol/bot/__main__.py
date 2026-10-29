@@ -124,6 +124,14 @@ def cmd_scan(args) -> None:
                 s.competition = comp
                 signals.append(s)
 
+    # No repetir partidos ya apostados en un escaneo anterior (la misma
+    # jornada puede aparecer en dos lecturas seguidas de la casa).
+    already = {(b["date"], b["home_team"], b["away_team"]) for b in ledger.bets}
+    repeated = [s for s in signals if (s.date, s.home_team, s.away_team) in already]
+    for s in repeated:
+        print(f"  ya apostado antes, se omite: {s.date} {s.home_team} vs {s.away_team}")
+    signals = [s for s in signals if (s.date, s.home_team, s.away_team) not in already]
+
     signals = apply_exposure_limit(signals, bankroll, cfg)
     if not signals:
         print("Sin apuestas de valor en estos partidos con la estrategia actual.")
