@@ -44,6 +44,8 @@ class LoginActivity : Activity() {
         web.loadUrl("https://pocketoption.com/es/login/")
     }
 
+    @Deprecated("API de Activity sin AndroidX")
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
         if (web.canGoBack()) web.goBack() else super.onBackPressed()
     }

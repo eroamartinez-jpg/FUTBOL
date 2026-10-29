@@ -30,6 +30,11 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    // El lint "vital" de AGP no encuentra el jar de :core cuando llega como
+    // build incluido (includeBuild) y aborta la compilación.
+    lint {
+        checkReleaseBuilds = false
+    }
 }
 
 dependencies {
