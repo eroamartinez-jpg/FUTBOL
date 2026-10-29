@@ -18,7 +18,7 @@ confianza en vez de ocultarlo.
 
 > Este repositorio incluye además [`pocket_bot/`](pocket_bot/README.md), un
 > bot de señales de tendencia para Pocket Option (independiente del modelo de
-> fútbol).
+> fútbol), con ejecutables de escritorio y una [app Android](android/README.md).
 
 ## Fuente de datos
 
