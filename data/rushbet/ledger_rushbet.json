@@ -16,8 +16,9 @@
       "stake": 18.99,
       "closing_odds": null,
       "competition": "E0",
-      "status": "open",
-      "pnl": 0.0
+      "status": "lost",
+      "pnl": -18.99,
+      "score": "2-0"
     },
     {
       "bet_id": 2,
@@ -34,8 +35,9 @@
       "stake": 19.01,
       "closing_odds": null,
       "competition": "E0",
-      "status": "open",
-      "pnl": 0.0
+      "status": "won",
+      "pnl": 21.29,
+      "score": "2-0"
     },
     {
       "bet_id": 3,
@@ -52,8 +54,9 @@
       "stake": 21.11,
       "closing_odds": null,
       "competition": "E0",
-      "status": "open",
-      "pnl": 0.0
+      "status": "lost",
+      "pnl": -21.11,
+      "score": "3-1"
     },
     {
       "bet_id": 4,
@@ -70,8 +73,9 @@
       "stake": 6.44,
       "closing_odds": null,
       "competition": "E0",
-      "status": "open",
-      "pnl": 0.0
+      "status": "won",
+      "pnl": 23.18,
+      "score": "0-1"
     },
     {
       "bet_id": 5,
@@ -88,8 +92,9 @@
       "stake": 21.11,
       "closing_odds": null,
       "competition": "E0",
-      "status": "open",
-      "pnl": 0.0
+      "status": "won",
+      "pnl": 29.13,
+      "score": "2-0"
     },
     {
       "bet_id": 6,
@@ -106,8 +111,9 @@
       "stake": 21.11,
       "closing_odds": null,
       "competition": "E0",
-      "status": "open",
-      "pnl": 0.0
+      "status": "won",
+      "pnl": 23.64,
+      "score": "1-1"
     },
     {
       "bet_id": 7,
@@ -124,8 +130,9 @@
       "stake": 21.11,
       "closing_odds": null,
       "competition": "E0",
-      "status": "open",
-      "pnl": 0.0
+      "status": "won",
+      "pnl": 19.63,
+      "score": "0-1"
     },
     {
       "bet_id": 8,
