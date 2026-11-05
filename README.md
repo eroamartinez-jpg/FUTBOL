@@ -247,6 +247,126 @@ mitad del volumen del partido) y esas probabilidades de HT **no están
 calibradas por backtest** en ningún caso — se muestran siempre como
 estimación, igual que el resto del track en vivo.
 
+## Bot de apuestas de valor (`futbol/bot/`)
+
+Bot que usa el modelo para buscar **apuestas de valor** y las gestiona
+igual que un bot de trading algorítmico gestiona posiciones. Funciona en
+modo **paper trading** (banca simulada): no conecta con ninguna casa de
+apuestas ni mueve dinero real.
+
+### Cómo funciona (la analogía con un bot de trading)
+
+| Bot de trading | Bot de apuestas | Dónde |
+|---|---|---|
+| Precio de mercado | Cuota decimal de la casa → probabilidad implícita `1/cuota` (con margen) | `bot/odds.py` |
+| Señal / alpha | **Edge** = `p_modelo × cuota − 1`. Solo se apuesta si es ≥ `--min-edge` (por defecto +5%) | `bot/strategy.py` |
+| Filtro anti-señales falsas | Si el modelo se aleja más de `--max-disagreement` (15 pts) de la probabilidad justa del mercado, se descarta: casi siempre es el modelo el que no sabe algo (lesiones, rotaciones) | `bot/strategy.py` |
+| Tamaño de posición | **Kelly fraccional**: `f = (p·cuota − 1)/(cuota − 1)`, por ¼ (`--kelly`) y con tope del 3% de la banca por apuesta (`--max-stake`) | `bot/strategy.py` |
+| Gestión de riesgo | Exposición máxima por jornada (`--max-exposure`, 15% de la banca), rango de cuotas permitido, una apuesta por partido | `bot/strategy.py` |
+| Ejecución + P&L | Libro de apuestas en JSON: registra, liquida con el resultado real y calcula yield, ROI, drawdown y **CLV** | `bot/ledger.py` |
+| Backtest | Walk-forward: en cada fecha reentrena Dixon-Coles **solo con partidos anteriores**, apuesta con la banca de ese momento y liquida con el resultado real | `bot/backtest.py` |
+
+Mercados: 1X2 y over/under 2.5 por defecto (`--markets`; también
+`ou1.5`, `ou3.5` y `btts` si el CSV trae esas cuotas). Hay un modelo por
+competición (columna `Div`), igual que en el resto del proyecto.
+
+El **CLV** (closing line value: cuánto mejor fue tu cuota que la de cierre)
+es la métrica que más importa: el P&L de unos cientos de apuestas es casi
+todo varianza, pero si de forma sostenida coges cuotas mejores que las de
+cierre de Pinnacle, el modelo sí está encontrando algo.
+
+### Datos
+
+Usa los CSV gratuitos de [football-data.co.uk](https://www.football-data.co.uk/data.php)
+(resultados + cuotas de Bet365, Pinnacle, media y máximo del mercado, de
+apertura y de cierre, para ~25 ligas hasta la temporada actual; también
+publican `fixtures.csv` con las cuotas de los próximos partidos). Este
+entorno no tiene salida a esa web, así que hay que descargarlos en tu
+máquina. Se aceptan también columnas genéricas (`odds_home`, `odds_draw`,
+`odds_away`, `odds_over25`, `odds_under25`, `odds_btts_yes`, `odds_btts_no`)
+para cuotas de cualquier otra fuente.
+
+### Uso
+
+```bash
+# 1. Backtest: ¿habría ganado dinero el bot en temporadas pasadas?
+python -m futbol.bot backtest --data E0_2324.csv E0_2425.csv --book PS --out backtest.json
+
+# 2. Crear un libro de apuestas con banca simulada
+python -m futbol.bot init --ledger mi_bot.json --bankroll 1000
+
+# 3. Antes de cada jornada: escanear y registrar las apuestas de valor
+python -m futbol.bot scan --history E0_2425.csv E0_2526.csv --fixtures fixtures.csv \
+    --book B365 --ledger mi_bot.json --place
+
+# 4. Después de la jornada: liquidar y ver el rendimiento
+python -m futbol.bot settle --ledger mi_bot.json --results E0_2526.csv
+python -m futbol.bot report --ledger mi_bot.json
+```
+
+`--book PS` (Pinnacle) en el backtest es lo más honesto: es el mercado más
+eficiente; `Max` (mejor cuota de todas las casas) infla los resultados
+porque en la práctica no siempre se puede conseguir.
+
+### Cuotas de Rushbet vía TinyFish
+
+Rushbet (Colombia) no tiene API para terceros: su plataforma (Kambi)
+responde 429 a peticiones directas. Las cuotas se leen de su sportsbook
+público con un navegador automatizado de **TinyFish** (`run_web_automation`,
+proxy en Colombia), **sin iniciar sesión y sin apostar**, pidiendo un JSON
+con `home_team`, `away_team`, `date`/`kickoff`, `odds_home`, `odds_draw`,
+`odds_away`, `odds_over25`, `odds_under25`. Luego:
+
+```bash
+# JSON de TinyFish -> CSV de próximos partidos con nombres de football-data
+python -m futbol.bot.rushbet data/rushbet/E0_2026-10-29.json --competition E0 \
+    --history data/odds/E0_2526.csv data/odds/E0_2627.csv \
+    --out data/rushbet/fixtures_E0.csv --today 2026-10-29
+
+# Escanear y registrar (paper) contra la banca simulada
+python -m futbol.bot scan --history data/odds/E0_2425.csv data/odds/E0_2526.csv data/odds/E0_2627.csv \
+    --fixtures data/rushbet/fixtures_E0.csv --ledger data/rushbet/ledger_rushbet.json --place
+```
+
+Los históricos de football-data.co.uk también se descargan con TinyFish
+(`fetch_content`), ya que este entorno no tiene salida directa a esa web;
+se guardan en `data/odds/` (no versionado). Si Rushbet escribe un equipo de
+forma que no se reconoce, el conversor lo avisa y hay que añadirlo a
+`ALIASES` en `futbol/bot/rushbet.py`.
+
+### Resultado del backtest con datos reales (Premier League + La Liga)
+
+Backtest walk-forward de 2023/24 a 2025/26 (2 280 partidos con cuotas
+reales, estrategia por defecto, banca inicial 1 000):
+
+| Precio de entrada | Apuestas | Yield | Banca final | CLV medio |
+|---|---|---|---|---|
+| Pinnacle (`--book PS`) | 1 328 | **−5.6%** | 86 | −0.9% |
+| Bet365 (`--book B365`, incl. 2026/27) | 1 620 | **−8.9%** | 31 | 0.0% |
+| Pinnacle, solo 1X2, conservadora¹ | 483 | **−3.8%** | 941 | −0.9% |
+
+¹ `--markets 1x2 --max-disagreement 0.05 --min-edge 0.03 --kelly 0.1 --max-stake 0.01`
+
+**El modelo no le gana al mercado en estas ligas.** El edge medio que
+estima (8-18%) es ilusorio: el CLV es ~0 o negativo, o sea que sus
+"apuestas de valor" no consiguen mejor precio que el de cierre. El
+over/under 2.5 es el peor mercado (−8.6% / −11.9%). Úsalo solo como
+herramienta de paper trading y para iterar el modelo; no con dinero real
+mientras el backtest no salga positivo.
+
+### Advertencias
+
+- **El backtest manda.** Un Dixon-Coles solo con goles es un modelo
+  sencillo y las ligas top están muy bien cotizadas; lo normal es que el
+  bot pierda contra Pinnacle en ellas. No lo uses con dinero real si el
+  backtest (y el CLV) de esa liga no salen positivos en varias temporadas.
+- Las casas de apuestas limitan o cierran cuentas ganadoras, y casi todas
+  prohíben en sus términos apostar con bots. La vía legítima para
+  automatizar la ejecución es un exchange con API (p. ej. Betfair
+  Exchange), que no está implementada aquí.
+- Apuesta solo lo que puedas permitirte perder, y revisa que las apuestas
+  sean legales donde vives.
+
 ## Cómo funciona
 
 1. **`futbol/data/`**: descarga (con cache local) los partidos y eventos de
