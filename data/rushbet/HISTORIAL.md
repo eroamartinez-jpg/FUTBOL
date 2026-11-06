@@ -13,3 +13,11 @@
   Perdió: Chelsea–Man United visitante (2-0), Coventry–Sunderland menos de 2.5 (3-1).
 - Abierta: Ipswich–Bournemouth más de 2.5 @ 1.67 (8 nov).
 - Banca simulada: 1 076.77 (+7.7%). La rutina programada del 30 oct no dejó registro en el repo (le falta el conector TinyFish).
+
+## 2026-11-05 (noche, Colombia) — intento de actualización
+- 3 lecturas de Rushbet con TinyFish sin cuotas utilizables: la primera devolvió la lista vacía,
+  la segunda confundió la jornada con FA Cup, y la tercera confirmó que es "Premier League" pero
+  tampoco devolvió partidos. No se registraron apuestas nuevas (no se inventan cuotas).
+- Jornada 11 vista en la portada (sin cuotas): Everton–Coventry, Leeds–Tottenham, Arsenal–Hull,
+  Fulham–Newcastle, Nott'm Forest–Man City.
+- Sin cambios: banca 1 076.77, abierta Ipswich–Bournemouth más de 2.5 (8 nov).
