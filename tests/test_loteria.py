@@ -55,3 +55,16 @@ def test_backtest_ninguna_estrategia_supera_el_azar():
     res, azar = backtest(df, BALOTO, repeticiones=3)
     for r in res:
         assert abs(r.aciertos_medios - azar) < 4 * r.error_estandar + 0.05
+
+
+def test_loterias_tradicionales():
+    from loteria.tradicionales import cargar_loterias, generar_numero, prueba_global, resumen
+    lots = cargar_loterias()
+    assert len(lots) == 15
+    for d in lots.values():
+        totales = {sum(f) for f in d["frecuencia_por_posicion"]}
+        assert len(totales) == 1  # las 4 posiciones cuentan los mismos sorteos
+    g = prueba_global(resumen())
+    assert g["pruebas"] == 60 and g["superan_umbral_corregido"] == 0
+    n = generar_numero(np.random.default_rng(1))
+    assert len(n) == 4 and n.isdigit()

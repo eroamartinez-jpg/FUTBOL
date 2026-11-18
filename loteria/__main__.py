@@ -7,6 +7,8 @@ Uso:
     python -m loteria backtest              # ¿funcionan los números calientes/fríos?
     python -m loteria jugar baloto -n 5     # genera 5 jugadas "poco populares"
     python -m loteria jugar chance -n 3
+    python -m loteria loterias              # las 15 loterías tradicionales: resultados y prueba de azar
+    python -m loteria jugar loteria -n 3    # números de 4 cifras para cualquier lotería
     python -m loteria chance 0724           # probabilidad y retorno de cada modalidad para un número
 """
 from __future__ import annotations
@@ -15,6 +17,7 @@ import argparse
 
 from .analisis import backtest, cargar_historial, frecuencias, matriz, prueba_uniformidad
 from .generador import generar_chance, generar_loto
+from .tradicionales import generar_numero, prueba_global, resumen
 from .juegos import BALOTO, JUEGOS_LOTO, MILOTO, chance_modalidades, loteria_mayor
 
 
@@ -85,7 +88,29 @@ def cmd_backtest(_args=None):
     print("\n  Todas quedan dentro del margen de error del azar: ninguna 'predice'.")
 
 
+def cmd_loterias(_args=None):
+    filas = resumen()
+    print(f"\n=== LOTERÍAS TRADICIONALES ({len(filas)}) — ¿alguna cifra sale más de la cuenta? ===")
+    print(f"  {'lotería':<27}{'día':<18}{'sorteos':>8}  {'último':<12}{'p-valor por posición (1ª 2ª 3ª 4ª)':>36}")
+    for f in filas:
+        u = f["ultimo"]
+        ult = u["numero"] + (f"-{u['serie']}" if u["serie"] else "")
+        ps = "  ".join(f"{p:.2f}" for p in f["p_valores"])
+        print(f"  {f['nombre']:<27}{f['dia']:<18}{f['sorteos']:>8}  {ult:<12}{ps:>36}")
+    g = prueba_global(filas)
+    print(f"\n  {g['significativas']} de {g['pruebas']} pruebas dan p<0,05; el azar solo ya produce ~{g['esperadas_por_azar']:.0f}"
+          f" (probabilidad de ver {g['significativas']} o más por azar: {g['p_de_ver_tantas']:.0%}).")
+    print(f"  Ninguna pasa el umbral corregido por hacer {g['pruebas']} pruebas (p<{g['umbral_corregido']:.4f}):"
+          " no hay cifras 'calientes' que aprovechar en ninguna lotería.")
+    print("  Premio mayor (número + serie): 1 en 10.000 x número de series. El chance de cada lotería usa estas 4 cifras.")
+
+
 def cmd_jugar(args):
+    if args.juego == "loteria":
+        print("\nNúmeros para cualquier lotería tradicional (cada uno: 1 en 10.000; la serie no cambia nada):")
+        for _ in range(args.n):
+            print(f"  {generar_numero()}")
+        return
     if args.juego == "chance":
         print("\nNúmeros de chance (todos tienen la misma probabilidad: 1 en 10.000 a 4 cifras):")
         for n in generar_chance(args.n):
@@ -107,6 +132,7 @@ def cmd_informe(_args=None):
     cmd_probabilidades()
     cmd_analizar()
     cmd_backtest()
+    cmd_loterias()
     cmd_jugar(argparse.Namespace(juego="baloto", n=3))
     cmd_jugar(argparse.Namespace(juego="chance", n=3))
     print("\nJuega solo lo que estés dispuesto a perder. Línea de ayuda por juego"
@@ -120,15 +146,16 @@ def main(argv=None):
     sub.add_parser("probabilidades")
     sub.add_parser("analizar")
     sub.add_parser("backtest")
+    sub.add_parser("loterias")
     j = sub.add_parser("jugar")
-    j.add_argument("juego", choices=[*JUEGOS_LOTO, "chance"])
+    j.add_argument("juego", choices=[*JUEGOS_LOTO, "chance", "loteria"])
     j.add_argument("-n", type=int, default=3)
     c = sub.add_parser("chance")
     c.add_argument("numero")
     args = p.parse_args(argv)
     {
         None: cmd_informe, "probabilidades": cmd_probabilidades, "analizar": cmd_analizar,
-        "backtest": cmd_backtest, "jugar": cmd_jugar, "chance": cmd_chance,
+        "backtest": cmd_backtest, "loterias": cmd_loterias, "jugar": cmd_jugar, "chance": cmd_chance,
     }[args.cmd](args)
 
 

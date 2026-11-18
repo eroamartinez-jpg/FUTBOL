@@ -1,0 +1,1785 @@
+{
+ "fuente": "resultadobaloto.com (consultado 18/11/2026)",
+ "loterias": {
+  "boyaca": {
+   "nombre": "Lotería de Boyacá",
+   "dia": "Sábado",
+   "estadisticas_desde": "11-10-2014",
+   "premio_mayor": "15.000 Millones de pesos",
+   "sorteos_en_estadistica": 628,
+   "frecuencia_por_posicion": [
+    [
+     72,
+     54,
+     57,
+     56,
+     69,
+     64,
+     61,
+     67,
+     71,
+     57
+    ],
+    [
+     67,
+     60,
+     84,
+     51,
+     58,
+     65,
+     78,
+     46,
+     57,
+     62
+    ],
+    [
+     73,
+     62,
+     55,
+     75,
+     62,
+     59,
+     51,
+     73,
+     62,
+     56
+    ],
+    [
+     55,
+     68,
+     62,
+     58,
+     61,
+     63,
+     69,
+     67,
+     64,
+     61
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-14",
+     "numero": "4483",
+     "serie": "012"
+    },
+    {
+     "fecha": "2026-11-07",
+     "numero": "1552",
+     "serie": "312"
+    },
+    {
+     "fecha": "2026-10-31",
+     "numero": "5748",
+     "serie": "202"
+    },
+    {
+     "fecha": "2026-10-24",
+     "numero": "5707",
+     "serie": "232"
+    },
+    {
+     "fecha": "2026-10-17",
+     "numero": "5480",
+     "serie": "426"
+    },
+    {
+     "fecha": "2026-10-10",
+     "numero": "7209",
+     "serie": "286"
+    },
+    {
+     "fecha": "2026-10-03",
+     "numero": "7394",
+     "serie": "060"
+    },
+    {
+     "fecha": "2026-09-26",
+     "numero": "9882",
+     "serie": "270"
+    },
+    {
+     "fecha": "2026-09-19",
+     "numero": "8004",
+     "serie": "240"
+    },
+    {
+     "fecha": "2026-09-12",
+     "numero": "2984",
+     "serie": "406"
+    },
+    {
+     "fecha": "2026-09-05",
+     "numero": "2751",
+     "serie": "245"
+    },
+    {
+     "fecha": "2026-08-29",
+     "numero": "7660",
+     "serie": "393"
+    }
+   ]
+  },
+  "medellin": {
+   "nombre": "Lotería de Medellín",
+   "dia": "Viernes",
+   "estadisticas_desde": "10-10-2014",
+   "premio_mayor": "16.000 Millones de pesos",
+   "sorteos_en_estadistica": 619,
+   "frecuencia_por_posicion": [
+    [
+     56,
+     70,
+     60,
+     54,
+     57,
+     57,
+     55,
+     78,
+     64,
+     68
+    ],
+    [
+     58,
+     60,
+     59,
+     57,
+     62,
+     67,
+     76,
+     63,
+     57,
+     60
+    ],
+    [
+     69,
+     62,
+     65,
+     69,
+     63,
+     61,
+     53,
+     58,
+     63,
+     56
+    ],
+    [
+     64,
+     68,
+     61,
+     54,
+     56,
+     61,
+     63,
+     56,
+     73,
+     63
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-13",
+     "numero": "5724",
+     "serie": "045"
+    },
+    {
+     "fecha": "2026-11-06",
+     "numero": "5609",
+     "serie": "266"
+    },
+    {
+     "fecha": "2026-10-30",
+     "numero": "2168",
+     "serie": "056"
+    },
+    {
+     "fecha": "2026-10-23",
+     "numero": "3755",
+     "serie": "188"
+    },
+    {
+     "fecha": "2026-10-16",
+     "numero": "1271",
+     "serie": "087"
+    },
+    {
+     "fecha": "2026-10-09",
+     "numero": "0169",
+     "serie": "238"
+    },
+    {
+     "fecha": "2026-10-02",
+     "numero": "8611",
+     "serie": "141"
+    },
+    {
+     "fecha": "2026-09-25",
+     "numero": "1620",
+     "serie": "337"
+    },
+    {
+     "fecha": "2026-09-18",
+     "numero": "8535",
+     "serie": "183"
+    },
+    {
+     "fecha": "2026-09-11",
+     "numero": "0553",
+     "serie": "163"
+    },
+    {
+     "fecha": "2026-09-04",
+     "numero": "1132",
+     "serie": "102"
+    },
+    {
+     "fecha": "2026-08-28",
+     "numero": "2608",
+     "serie": "301"
+    }
+   ]
+  },
+  "bogota": {
+   "nombre": "Lotería de Bogotá",
+   "dia": "Jueves",
+   "estadisticas_desde": "09-10-2014",
+   "premio_mayor": "12.000 Millones de pesos",
+   "sorteos_en_estadistica": 619,
+   "frecuencia_por_posicion": [
+    [
+     62,
+     63,
+     62,
+     80,
+     59,
+     48,
+     57,
+     52,
+     56,
+     80
+    ],
+    [
+     64,
+     68,
+     52,
+     58,
+     65,
+     62,
+     57,
+     78,
+     58,
+     57
+    ],
+    [
+     63,
+     63,
+     58,
+     65,
+     59,
+     62,
+     66,
+     60,
+     71,
+     52
+    ],
+    [
+     57,
+     64,
+     55,
+     66,
+     65,
+     49,
+     68,
+     70,
+     68,
+     57
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-12",
+     "numero": "1970",
+     "serie": "089"
+    },
+    {
+     "fecha": "2026-11-05",
+     "numero": "0387",
+     "serie": "018"
+    },
+    {
+     "fecha": "2026-10-29",
+     "numero": "0500",
+     "serie": "094"
+    },
+    {
+     "fecha": "2026-10-22",
+     "numero": "9392",
+     "serie": "449"
+    },
+    {
+     "fecha": "2026-10-15",
+     "numero": "4486",
+     "serie": "335"
+    },
+    {
+     "fecha": "2026-10-08",
+     "numero": "8565",
+     "serie": "175"
+    },
+    {
+     "fecha": "2026-10-01",
+     "numero": "8523",
+     "serie": "165"
+    },
+    {
+     "fecha": "2026-09-24",
+     "numero": "9744",
+     "serie": "080"
+    },
+    {
+     "fecha": "2026-09-17",
+     "numero": "0181",
+     "serie": "380"
+    },
+    {
+     "fecha": "2026-09-10",
+     "numero": "3334",
+     "serie": "314"
+    },
+    {
+     "fecha": "2026-09-03",
+     "numero": "3427",
+     "serie": "006"
+    },
+    {
+     "fecha": "2026-08-27",
+     "numero": "7280",
+     "serie": "388"
+    }
+   ]
+  },
+  "quindio": {
+   "nombre": "Lotería del Quindío",
+   "dia": "Jueves",
+   "estadisticas_desde": "09-10-2014",
+   "premio_mayor": "2.000 Millones de pesos",
+   "sorteos_en_estadistica": 590,
+   "frecuencia_por_posicion": [
+    [
+     68,
+     53,
+     70,
+     62,
+     67,
+     48,
+     68,
+     53,
+     48,
+     53
+    ],
+    [
+     49,
+     65,
+     57,
+     71,
+     54,
+     58,
+     59,
+     62,
+     57,
+     58
+    ],
+    [
+     59,
+     53,
+     62,
+     65,
+     74,
+     41,
+     69,
+     53,
+     54,
+     60
+    ],
+    [
+     68,
+     55,
+     62,
+     66,
+     62,
+     66,
+     55,
+     54,
+     57,
+     45
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-04-23",
+     "numero": "7091",
+     "serie": "055"
+    },
+    {
+     "fecha": "2026-04-16",
+     "numero": "2586",
+     "serie": "152"
+    },
+    {
+     "fecha": "2026-04-09",
+     "numero": "5497",
+     "serie": "178"
+    },
+    {
+     "fecha": "2026-03-26",
+     "numero": "4696",
+     "serie": "176"
+    },
+    {
+     "fecha": "2026-03-19",
+     "numero": "7643",
+     "serie": "115"
+    },
+    {
+     "fecha": "2026-03-12",
+     "numero": "6320",
+     "serie": "127"
+    },
+    {
+     "fecha": "2026-03-05",
+     "numero": "4855",
+     "serie": "007"
+    },
+    {
+     "fecha": "2026-02-26",
+     "numero": "1796",
+     "serie": "042"
+    },
+    {
+     "fecha": "2026-02-19",
+     "numero": "2139",
+     "serie": "016"
+    },
+    {
+     "fecha": "2026-02-12",
+     "numero": "9539",
+     "serie": "067"
+    },
+    {
+     "fecha": "2026-02-05",
+     "numero": "7756",
+     "serie": "171"
+    }
+   ]
+  },
+  "manizales": {
+   "nombre": "Lotería de Manizales",
+   "dia": "Miércoles",
+   "estadisticas_desde": "08-10-2014",
+   "premio_mayor": "3.000 Millones de pesos",
+   "sorteos_en_estadistica": 611,
+   "frecuencia_por_posicion": [
+    [
+     62,
+     73,
+     56,
+     55,
+     69,
+     50,
+     65,
+     61,
+     54,
+     66
+    ],
+    [
+     75,
+     57,
+     50,
+     66,
+     65,
+     71,
+     55,
+     59,
+     46,
+     67
+    ],
+    [
+     59,
+     67,
+     72,
+     53,
+     56,
+     61,
+     59,
+     67,
+     56,
+     61
+    ],
+    [
+     65,
+     67,
+     57,
+     65,
+     67,
+     60,
+     47,
+     72,
+     51,
+     60
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-11",
+     "numero": "9494",
+     "serie": "020"
+    },
+    {
+     "fecha": "2026-11-04",
+     "numero": "2570",
+     "serie": "334"
+    },
+    {
+     "fecha": "2026-10-28",
+     "numero": "4241",
+     "serie": "183"
+    },
+    {
+     "fecha": "2026-10-21",
+     "numero": "2624",
+     "serie": "288"
+    },
+    {
+     "fecha": "2026-10-14",
+     "numero": "2024",
+     "serie": "015"
+    },
+    {
+     "fecha": "2026-10-07",
+     "numero": "9797",
+     "serie": "365"
+    },
+    {
+     "fecha": "2026-09-30",
+     "numero": "6602",
+     "serie": "333"
+    },
+    {
+     "fecha": "2026-09-23",
+     "numero": "1933",
+     "serie": "219"
+    },
+    {
+     "fecha": "2026-09-16",
+     "numero": "0018",
+     "serie": "300"
+    },
+    {
+     "fecha": "2026-09-09",
+     "numero": "4628",
+     "serie": "163"
+    },
+    {
+     "fecha": "2026-09-02",
+     "numero": "8587",
+     "serie": "223"
+    },
+    {
+     "fecha": "2026-08-26",
+     "numero": "4128",
+     "serie": "102"
+    }
+   ]
+  },
+  "meta": {
+   "nombre": "Lotería del Meta",
+   "dia": "Miércoles",
+   "estadisticas_desde": "08-10-2014",
+   "premio_mayor": "1.800 Millones de pesos",
+   "sorteos_en_estadistica": 619,
+   "frecuencia_por_posicion": [
+    [
+     62,
+     76,
+     58,
+     56,
+     62,
+     59,
+     62,
+     62,
+     46,
+     76
+    ],
+    [
+     73,
+     52,
+     49,
+     60,
+     58,
+     72,
+     64,
+     66,
+     65,
+     60
+    ],
+    [
+     83,
+     52,
+     70,
+     55,
+     75,
+     48,
+     54,
+     55,
+     59,
+     68
+    ],
+    [
+     48,
+     59,
+     58,
+     63,
+     82,
+     59,
+     69,
+     68,
+     49,
+     64
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-11",
+     "numero": "5273",
+     "serie": "101"
+    },
+    {
+     "fecha": "2026-11-04",
+     "numero": "0543",
+     "serie": "141"
+    },
+    {
+     "fecha": "2026-10-28",
+     "numero": "7443",
+     "serie": "028"
+    },
+    {
+     "fecha": "2026-10-21",
+     "numero": "1847",
+     "serie": "108"
+    },
+    {
+     "fecha": "2026-10-14",
+     "numero": "3415",
+     "serie": "143"
+    },
+    {
+     "fecha": "2026-10-07",
+     "numero": "7285",
+     "serie": "068"
+    },
+    {
+     "fecha": "2026-09-30",
+     "numero": "7367",
+     "serie": "014"
+    },
+    {
+     "fecha": "2026-09-23",
+     "numero": "2962",
+     "serie": "032"
+    },
+    {
+     "fecha": "2026-09-16",
+     "numero": "1268",
+     "serie": "112"
+    },
+    {
+     "fecha": "2026-09-09",
+     "numero": "3797",
+     "serie": "031"
+    },
+    {
+     "fecha": "2026-09-02",
+     "numero": "1719",
+     "serie": "084"
+    },
+    {
+     "fecha": "2026-08-26",
+     "numero": "8134",
+     "serie": "096"
+    }
+   ]
+  },
+  "valle": {
+   "nombre": "Lotería del Valle",
+   "dia": "Miércoles",
+   "estadisticas_desde": "08-10-2014",
+   "premio_mayor": "9.000 Millones de pesos",
+   "sorteos_en_estadistica": 620,
+   "frecuencia_por_posicion": [
+    [
+     67,
+     66,
+     60,
+     60,
+     57,
+     61,
+     57,
+     52,
+     74,
+     66
+    ],
+    [
+     63,
+     54,
+     67,
+     56,
+     64,
+     66,
+     64,
+     58,
+     66,
+     62
+    ],
+    [
+     55,
+     53,
+     57,
+     61,
+     65,
+     69,
+     73,
+     60,
+     63,
+     64
+    ],
+    [
+     62,
+     58,
+     60,
+     68,
+     71,
+     61,
+     61,
+     51,
+     65,
+     63
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-11",
+     "numero": "1067",
+     "serie": "198"
+    },
+    {
+     "fecha": "2026-11-04",
+     "numero": "7932",
+     "serie": "040"
+    },
+    {
+     "fecha": "2026-10-28",
+     "numero": "7544",
+     "serie": "022"
+    },
+    {
+     "fecha": "2026-10-21",
+     "numero": "8084",
+     "serie": "258"
+    },
+    {
+     "fecha": "2026-10-14",
+     "numero": "5091",
+     "serie": "003"
+    },
+    {
+     "fecha": "2026-10-07",
+     "numero": "6416",
+     "serie": "068"
+    },
+    {
+     "fecha": "2026-09-30",
+     "numero": "2012",
+     "serie": "199"
+    },
+    {
+     "fecha": "2026-09-23",
+     "numero": "4356",
+     "serie": "149"
+    },
+    {
+     "fecha": "2026-09-16",
+     "numero": "0188",
+     "serie": "142"
+    },
+    {
+     "fecha": "2026-09-09",
+     "numero": "7096",
+     "serie": "149"
+    },
+    {
+     "fecha": "2026-09-02",
+     "numero": "9164",
+     "serie": "113"
+    },
+    {
+     "fecha": "2026-08-26",
+     "numero": "9934",
+     "serie": "261"
+    }
+   ]
+  },
+  "cruzroja": {
+   "nombre": "Lotería de la Cruz Roja",
+   "dia": "Martes",
+   "estadisticas_desde": null,
+   "premio_mayor": null,
+   "sorteos_en_estadistica": 625,
+   "frecuencia_por_posicion": [
+    [
+     62,
+     56,
+     72,
+     46,
+     57,
+     71,
+     68,
+     57,
+     64,
+     72
+    ],
+    [
+     66,
+     63,
+     50,
+     50,
+     70,
+     67,
+     70,
+     69,
+     56,
+     64
+    ],
+    [
+     64,
+     57,
+     46,
+     65,
+     64,
+     73,
+     64,
+     62,
+     81,
+     49
+    ],
+    [
+     53,
+     58,
+     65,
+     74,
+     54,
+     54,
+     67,
+     68,
+     68,
+     64
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-17",
+     "numero": "3828",
+     "serie": "143"
+    },
+    {
+     "fecha": "2026-11-10",
+     "numero": "7341",
+     "serie": "163"
+    },
+    {
+     "fecha": "2026-11-03",
+     "numero": "8607",
+     "serie": "153"
+    },
+    {
+     "fecha": "2026-10-27",
+     "numero": "8663",
+     "serie": "218"
+    },
+    {
+     "fecha": "2026-10-20",
+     "numero": "8572",
+     "serie": "156"
+    },
+    {
+     "fecha": "2026-10-13",
+     "numero": "7623",
+     "serie": "160"
+    },
+    {
+     "fecha": "2026-10-06",
+     "numero": "5884",
+     "serie": "177"
+    },
+    {
+     "fecha": "2026-09-29",
+     "numero": "5698",
+     "serie": "055"
+    },
+    {
+     "fecha": "2026-09-22",
+     "numero": "3981",
+     "serie": "219"
+    },
+    {
+     "fecha": "2026-09-15",
+     "numero": "0016",
+     "serie": "173"
+    },
+    {
+     "fecha": "2026-09-08",
+     "numero": "0044",
+     "serie": "214"
+    },
+    {
+     "fecha": "2026-09-01",
+     "numero": "7132",
+     "serie": "250"
+    }
+   ]
+  },
+  "cundinamarca": {
+   "nombre": "Lotería de Cundinamarca",
+   "dia": "Lunes",
+   "estadisticas_desde": "06-10-2014",
+   "premio_mayor": "10.000 Millones de pesos",
+   "sorteos_en_estadistica": 623,
+   "frecuencia_por_posicion": [
+    [
+     61,
+     62,
+     70,
+     57,
+     74,
+     51,
+     66,
+     66,
+     53,
+     63
+    ],
+    [
+     61,
+     58,
+     61,
+     59,
+     77,
+     67,
+     52,
+     77,
+     52,
+     59
+    ],
+    [
+     73,
+     58,
+     48,
+     65,
+     68,
+     71,
+     58,
+     55,
+     66,
+     61
+    ],
+    [
+     69,
+     74,
+     57,
+     64,
+     68,
+     56,
+     53,
+     52,
+     60,
+     70
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-17",
+     "numero": "1651",
+     "serie": "011"
+    },
+    {
+     "fecha": "2026-11-09",
+     "numero": "0474",
+     "serie": "015"
+    },
+    {
+     "fecha": "2026-11-03",
+     "numero": "9251",
+     "serie": "149"
+    },
+    {
+     "fecha": "2026-10-26",
+     "numero": "7099",
+     "serie": "028"
+    },
+    {
+     "fecha": "2026-10-19",
+     "numero": "0901",
+     "serie": "026"
+    },
+    {
+     "fecha": "2026-10-13",
+     "numero": "5793",
+     "serie": "251"
+    },
+    {
+     "fecha": "2026-10-05",
+     "numero": "9503",
+     "serie": "018"
+    },
+    {
+     "fecha": "2026-09-28",
+     "numero": "2463",
+     "serie": "138"
+    },
+    {
+     "fecha": "2026-09-21",
+     "numero": "5341",
+     "serie": "078"
+    },
+    {
+     "fecha": "2026-09-14",
+     "numero": "9019",
+     "serie": "333"
+    },
+    {
+     "fecha": "2026-09-07",
+     "numero": "4484",
+     "serie": "006"
+    },
+    {
+     "fecha": "2026-08-31",
+     "numero": "3478",
+     "serie": "085"
+    }
+   ]
+  },
+  "tolima": {
+   "nombre": "Lotería del Tolima",
+   "dia": "Lunes",
+   "estadisticas_desde": "06-10-2014",
+   "premio_mayor": null,
+   "sorteos_en_estadistica": 615,
+   "frecuencia_por_posicion": [
+    [
+     56,
+     80,
+     53,
+     66,
+     62,
+     56,
+     68,
+     57,
+     57,
+     60
+    ],
+    [
+     56,
+     74,
+     58,
+     52,
+     66,
+     61,
+     55,
+     69,
+     69,
+     55
+    ],
+    [
+     60,
+     73,
+     56,
+     60,
+     67,
+     57,
+     57,
+     57,
+     64,
+     64
+    ],
+    [
+     63,
+     67,
+     67,
+     59,
+     63,
+     48,
+     68,
+     62,
+     73,
+     45
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-17",
+     "numero": "7565",
+     "serie": "133"
+    },
+    {
+     "fecha": "2026-11-09",
+     "numero": "8349",
+     "serie": "243"
+    },
+    {
+     "fecha": "2026-11-03",
+     "numero": "8708",
+     "serie": "133"
+    },
+    {
+     "fecha": "2026-10-26",
+     "numero": "0902",
+     "serie": "082"
+    },
+    {
+     "fecha": "2026-10-19",
+     "numero": "2891",
+     "serie": "273"
+    },
+    {
+     "fecha": "2026-10-13",
+     "numero": "3256",
+     "serie": "070"
+    },
+    {
+     "fecha": "2026-10-05",
+     "numero": "6241",
+     "serie": "067"
+    },
+    {
+     "fecha": "2026-09-28",
+     "numero": "6718",
+     "serie": "171"
+    },
+    {
+     "fecha": "2026-09-21",
+     "numero": "4008",
+     "serie": "055"
+    },
+    {
+     "fecha": "2026-09-14",
+     "numero": "6845",
+     "serie": "051"
+    },
+    {
+     "fecha": "2026-09-07",
+     "numero": "2680",
+     "serie": "022"
+    },
+    {
+     "fecha": "2026-08-31",
+     "numero": "9721",
+     "serie": "168"
+    }
+   ]
+  },
+  "huila": {
+   "nombre": "Lotería del Huila",
+   "dia": "Martes",
+   "estadisticas_desde": "07-10-2014",
+   "premio_mayor": null,
+   "sorteos_en_estadistica": 627,
+   "frecuencia_por_posicion": [
+    [
+     60,
+     58,
+     57,
+     64,
+     61,
+     56,
+     60,
+     64,
+     74,
+     73
+    ],
+    [
+     69,
+     53,
+     51,
+     73,
+     63,
+     64,
+     64,
+     58,
+     76,
+     56
+    ],
+    [
+     80,
+     65,
+     62,
+     58,
+     48,
+     54,
+     62,
+     64,
+     76,
+     58
+    ],
+    [
+     65,
+     64,
+     66,
+     53,
+     55,
+     61,
+     75,
+     59,
+     68,
+     61
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-17",
+     "numero": "8566",
+     "serie": "164"
+    },
+    {
+     "fecha": "2026-11-10",
+     "numero": "4988",
+     "serie": "068"
+    },
+    {
+     "fecha": "2026-11-03",
+     "numero": "6639",
+     "serie": "167"
+    },
+    {
+     "fecha": "2026-10-27",
+     "numero": "8262",
+     "serie": "153"
+    },
+    {
+     "fecha": "2026-10-20",
+     "numero": "8852",
+     "serie": "006"
+    },
+    {
+     "fecha": "2026-10-13",
+     "numero": "0338",
+     "serie": "174"
+    },
+    {
+     "fecha": "2026-10-06",
+     "numero": "0248",
+     "serie": "147"
+    },
+    {
+     "fecha": "2026-09-29",
+     "numero": "9090",
+     "serie": "056"
+    },
+    {
+     "fecha": "2026-09-22",
+     "numero": "1547",
+     "serie": "082"
+    },
+    {
+     "fecha": "2026-09-15",
+     "numero": "4614",
+     "serie": "063"
+    },
+    {
+     "fecha": "2026-09-08",
+     "numero": "3804",
+     "serie": "024"
+    },
+    {
+     "fecha": "2026-09-01",
+     "numero": "2876",
+     "serie": "129"
+    }
+   ]
+  },
+  "risaralda": {
+   "nombre": "Lotería de Risaralda",
+   "dia": "Viernes",
+   "estadisticas_desde": "10-10-2014",
+   "premio_mayor": "2.333 Millones de pesos",
+   "sorteos_en_estadistica": 618,
+   "frecuencia_por_posicion": [
+    [
+     66,
+     52,
+     56,
+     64,
+     66,
+     65,
+     61,
+     65,
+     60,
+     63
+    ],
+    [
+     75,
+     82,
+     53,
+     57,
+     60,
+     60,
+     60,
+     54,
+     66,
+     51
+    ],
+    [
+     60,
+     60,
+     47,
+     91,
+     53,
+     63,
+     58,
+     64,
+     58,
+     64
+    ],
+    [
+     60,
+     52,
+     63,
+     58,
+     71,
+     68,
+     78,
+     61,
+     50,
+     57
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-13",
+     "numero": "8362",
+     "serie": "118"
+    },
+    {
+     "fecha": "2026-11-06",
+     "numero": "8434",
+     "serie": "109"
+    },
+    {
+     "fecha": "2026-10-30",
+     "numero": "3292",
+     "serie": "273"
+    },
+    {
+     "fecha": "2026-10-23",
+     "numero": "7470",
+     "serie": "190"
+    },
+    {
+     "fecha": "2026-10-16",
+     "numero": "5475",
+     "serie": "176"
+    },
+    {
+     "fecha": "2026-10-09",
+     "numero": "7531",
+     "serie": "195"
+    },
+    {
+     "fecha": "2026-10-02",
+     "numero": "4766",
+     "serie": "143"
+    },
+    {
+     "fecha": "2026-09-25",
+     "numero": "6731",
+     "serie": "197"
+    },
+    {
+     "fecha": "2026-09-18",
+     "numero": "6711",
+     "serie": "284"
+    },
+    {
+     "fecha": "2026-09-11",
+     "numero": "2192",
+     "serie": "079"
+    },
+    {
+     "fecha": "2026-09-04",
+     "numero": "2131",
+     "serie": "085"
+    },
+    {
+     "fecha": "2026-08-28",
+     "numero": "6968",
+     "serie": "189"
+    }
+   ]
+  },
+  "santander": {
+   "nombre": "Lotería de Santander",
+   "dia": "Viernes",
+   "estadisticas_desde": "10-10-2014",
+   "premio_mayor": "6.500 Millones de pesos",
+   "sorteos_en_estadistica": 602,
+   "frecuencia_por_posicion": [
+    [
+     65,
+     57,
+     44,
+     73,
+     79,
+     51,
+     59,
+     53,
+     60,
+     61
+    ],
+    [
+     69,
+     66,
+     57,
+     71,
+     57,
+     59,
+     62,
+     56,
+     63,
+     42
+    ],
+    [
+     59,
+     48,
+     56,
+     62,
+     61,
+     58,
+     54,
+     57,
+     75,
+     72
+    ],
+    [
+     61,
+     62,
+     64,
+     51,
+     56,
+     47,
+     53,
+     77,
+     73,
+     58
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-13",
+     "numero": "5198",
+     "serie": "291"
+    },
+    {
+     "fecha": "2026-11-06",
+     "numero": "7151",
+     "serie": "204"
+    },
+    {
+     "fecha": "2026-10-30",
+     "numero": "8037",
+     "serie": "261"
+    },
+    {
+     "fecha": "2026-10-23",
+     "numero": "0579",
+     "serie": "251"
+    },
+    {
+     "fecha": "2026-10-16",
+     "numero": "3167",
+     "serie": "129"
+    },
+    {
+     "fecha": "2026-10-09",
+     "numero": "3794",
+     "serie": "303"
+    },
+    {
+     "fecha": "2026-10-02",
+     "numero": "8210",
+     "serie": "307"
+    },
+    {
+     "fecha": "2026-09-25",
+     "numero": "0151",
+     "serie": "055"
+    },
+    {
+     "fecha": "2026-09-18",
+     "numero": "0937",
+     "serie": "278"
+    },
+    {
+     "fecha": "2026-09-11",
+     "numero": "4231",
+     "serie": "020"
+    },
+    {
+     "fecha": "2026-09-04",
+     "numero": "0856",
+     "serie": "281"
+    },
+    {
+     "fecha": "2026-08-28",
+     "numero": "3798",
+     "serie": "029"
+    }
+   ]
+  },
+  "cauca": {
+   "nombre": "Lotería del Cauca",
+   "dia": "Sábado",
+   "estadisticas_desde": "11-10-2014",
+   "premio_mayor": "8.000 Millones de pesos",
+   "sorteos_en_estadistica": 625,
+   "frecuencia_por_posicion": [
+    [
+     51,
+     64,
+     77,
+     64,
+     45,
+     55,
+     70,
+     72,
+     78,
+     49
+    ],
+    [
+     72,
+     58,
+     64,
+     60,
+     59,
+     65,
+     64,
+     60,
+     52,
+     71
+    ],
+    [
+     64,
+     65,
+     51,
+     68,
+     55,
+     76,
+     68,
+     70,
+     57,
+     51
+    ],
+    [
+     56,
+     64,
+     67,
+     64,
+     47,
+     57,
+     75,
+     63,
+     54,
+     78
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-14",
+     "numero": "3633",
+     "serie": "102"
+    },
+    {
+     "fecha": "2026-11-07",
+     "numero": "2073",
+     "serie": "040"
+    },
+    {
+     "fecha": "2026-10-31",
+     "numero": "1355",
+     "serie": "147"
+    },
+    {
+     "fecha": "2026-10-24",
+     "numero": "9458",
+     "serie": "226"
+    },
+    {
+     "fecha": "2026-10-17",
+     "numero": "0869",
+     "serie": "197"
+    },
+    {
+     "fecha": "2026-10-10",
+     "numero": "1618",
+     "serie": "186"
+    },
+    {
+     "fecha": "2026-10-03",
+     "numero": "2476",
+     "serie": "111"
+    },
+    {
+     "fecha": "2026-09-26",
+     "numero": "7567",
+     "serie": "058"
+    },
+    {
+     "fecha": "2026-09-19",
+     "numero": "3409",
+     "serie": "260"
+    },
+    {
+     "fecha": "2026-09-12",
+     "numero": "9666",
+     "serie": "034"
+    },
+    {
+     "fecha": "2026-09-05",
+     "numero": "1528",
+     "serie": "032"
+    },
+    {
+     "fecha": "2026-08-29",
+     "numero": "8591",
+     "serie": "123"
+    }
+   ]
+  },
+  "extra": {
+   "nombre": "Lotería Extra de Colombia",
+   "dia": "Sábado (mensual)",
+   "estadisticas_desde": "20-09-2014",
+   "premio_mayor": null,
+   "sorteos_en_estadistica": 129,
+   "frecuencia_por_posicion": [
+    [
+     13,
+     10,
+     13,
+     17,
+     10,
+     12,
+     18,
+     10,
+     18,
+     8
+    ],
+    [
+     13,
+     16,
+     14,
+     14,
+     12,
+     9,
+     13,
+     14,
+     12,
+     12
+    ],
+    [
+     7,
+     20,
+     8,
+     14,
+     13,
+     11,
+     14,
+     20,
+     16,
+     6
+    ],
+    [
+     13,
+     13,
+     13,
+     10,
+     15,
+     12,
+     15,
+     11,
+     12,
+     15
+    ]
+   ],
+   "ultimos_resultados": [
+    {
+     "fecha": "2026-11-14",
+     "numero": "1230",
+     "serie": "020"
+    },
+    {
+     "fecha": "2026-10-31",
+     "numero": "8259",
+     "serie": "320"
+    },
+    {
+     "fecha": "2026-10-17",
+     "numero": "6134",
+     "serie": "008"
+    },
+    {
+     "fecha": "2026-09-30",
+     "numero": "2716",
+     "serie": "034"
+    },
+    {
+     "fecha": "2026-09-19",
+     "numero": "4137",
+     "serie": "421"
+    },
+    {
+     "fecha": "2026-08-29",
+     "numero": "0782",
+     "serie": "215"
+    },
+    {
+     "fecha": "2026-07-30",
+     "numero": "9484",
+     "serie": "274"
+    },
+    {
+     "fecha": "2026-06-27",
+     "numero": "3960",
+     "serie": null
+    },
+    {
+     "fecha": "2026-05-30",
+     "numero": "5003",
+     "serie": null
+    },
+    {
+     "fecha": "2026-04-25",
+     "numero": "1179",
+     "serie": null
+    },
+    {
+     "fecha": "2026-03-28",
+     "numero": "4716",
+     "serie": null
+    },
+    {
+     "fecha": "2026-02-28",
+     "numero": "0013",
+     "serie": null
+    }
+   ]
+  }
+ }
+}

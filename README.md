@@ -382,6 +382,8 @@ python -m loteria backtest           # ¿funcionan los números calientes/fríos
 python -m loteria jugar baloto -n 5  # 5 jugadas al azar, filtrando combinaciones populares
 python -m loteria jugar chance -n 3
 python -m loteria chance 0724        # probabilidad y retorno de cada modalidad
+python -m loteria loterias           # las 15 loterías tradicionales: resultados y prueba de azar
+python -m loteria jugar loteria -n 3 # números de 4 cifras para cualquier lotería
 ```
 
 **Datos:** `data/loterias/baloto.csv`, 377 sorteos reales de Baloto
@@ -401,6 +403,18 @@ python -m loteria chance 0724        # probabilidad y retorno de cada modalidad
   Las de 1 y 2 cifras y las combinadas devuelven ~50 % de lo apostado a largo
   plazo, y 4 cifras directo devuelve 45 %. Ninguna devuelve más de lo que se
   juega.
+
+**Loterías tradicionales** (`data/loterias/loterias_tradicionales.json`):
+Bogotá, Medellín, Boyacá, Cundinamarca, Tolima, Cruz Roja, Huila, Manizales,
+Meta, Valle, Quindío, Risaralda, Santander, Cauca y Extra de Colombia. Para
+cada una se guardan la frecuencia de cada cifra en cada una de las 4
+posiciones desde 2014 (8.770 sorteos en total) y los últimos resultados.
+Esas 4 cifras son también las del chance de cada lotería. De las 60 pruebas
+(15 loterías × 4 posiciones), 5 dan p<0,05, y el azar solo ya produce ~3 (ver
+5 o más pasa el 18 % de las veces). Ninguna supera el umbral corregido por
+hacer 60 pruebas (p<0,0008), así que no hay cifras "calientes" en ninguna
+lotería. Cada billete es único, así que el premio mayor no se reparte y no
+hay números mejores ni peores.
 
 **El generador** elige al azar de forma uniforme y descarta las
 combinaciones que juega mucha gente (todas ≤31 por cumpleaños, secuencias,
