@@ -1,0 +1,136 @@
+"""Bot de loterías colombianas.
+
+Uso:
+    python -m loteria                       # informe completo (Baloto + chance)
+    python -m loteria probabilidades        # probabilidades exactas de cada juego
+    python -m loteria analizar              # frecuencias y prueba de aleatoriedad (Baloto real)
+    python -m loteria backtest              # ¿funcionan los números calientes/fríos?
+    python -m loteria jugar baloto -n 5     # genera 5 jugadas "poco populares"
+    python -m loteria jugar chance -n 3
+    python -m loteria chance 0724           # probabilidad y retorno de cada modalidad para un número
+"""
+from __future__ import annotations
+
+import argparse
+
+from .analisis import backtest, cargar_historial, frecuencias, matriz, prueba_uniformidad
+from .generador import generar_chance, generar_loto
+from .juegos import BALOTO, JUEGOS_LOTO, MILOTO, chance_modalidades, loteria_mayor
+
+
+def _miles(x: float) -> str:
+    return f"{x:,.0f}".replace(",", ".")
+
+
+def _uno_en(p: float) -> str:
+    return f"1 en {_miles(1 / p)}"
+
+
+def cmd_probabilidades(_args=None):
+    print("\n=== PROBABILIDADES EXACTAS (no cambian con ningún sistema) ===")
+    for juego in (BALOTO, MILOTO):
+        print(f"\n{juego.nombre}: {juego.k} de 1-{juego.n}" + (f" + balota 1-{juego.extra}" if juego.extra else ""))
+        print(f"  Premio mayor: {_uno_en(1 / juego.combinaciones)}")
+        for cat, p in juego.tabla_categorias():
+            if p and cat[0] in "2345":
+                print(f"    acertar {cat:<4} {p:.8f}   ({_uno_en(p)})")
+    print("\nLotería tradicional (4 cifras + serie), premio mayor:")
+    for series in (100, 200, 400):
+        print(f"  con {series} series: {_uno_en(loteria_mayor(series)['probabilidad'])}")
+    print("\nChance (número 0724 como ejemplo):")
+    _imprimir_chance("0724")
+
+
+def _imprimir_chance(numero: str):
+    print(f"  {'modalidad':<20}{'probabilidad':>14}{'paga x peso':>13}{'te devuelve en promedio':>26}")
+    for f in chance_modalidades(numero):
+        print(f"  {f['modalidad']:<20}{_uno_en(f['probabilidad']):>14}{_miles(f['paga_por_peso']):>13}"
+              f"{f['retorno_esperado'] * 100:>20.1f}% del valor")
+    print("  → La de MAYOR probabilidad de ganar es 1 cifra (10%). Ninguna modalidad"
+          " devuelve más de ~50 centavos por peso a largo plazo.")
+
+
+def cmd_chance(args):
+    if len(args.numero) != 4 or not args.numero.isdigit():
+        raise SystemExit("El chance se juega con un número de 4 cifras, p. ej. 0724")
+    print(f"\nChance con el número {args.numero}:")
+    _imprimir_chance(args.numero)
+    print("  Cualquier otro número de 4 cifras tiene EXACTAMENTE la misma probabilidad.")
+
+
+def cmd_analizar(_args=None):
+    df = cargar_historial("baloto")
+    print(f"\n=== ANÁLISIS DEL HISTORIAL REAL DE BALOTO ({len(df)} sorteos, "
+          f"{df.fecha.min():%d/%m/%Y} - {df.fecha.max():%d/%m/%Y}) ===")
+    fr = frecuencias(df, BALOTO)
+    print("\nMás frecuentes:  " + ", ".join(f"{r.numero}({r.veces})" for r in fr.head(8).itertuples()))
+    print("Menos frecuentes: " + ", ".join(f"{r.numero}({r.veces})" for r in fr.tail(8).itertuples()))
+    print(f"Esperado por número si es azar puro: {fr.esperado[0]} veces")
+    u = prueba_uniformidad(df, BALOTO)
+    print(f"\nPrueba de aleatoriedad (Monte Carlo, 2.000 historias simuladas):")
+    print(f"  números principales: p-valor = {u['p_valor']:.2f}")
+    print(f"  superbalota:         p-valor = {u['p_valor_superbalota']:.2f}")
+    print("  (p-valor > 0.05 = las diferencias de frecuencia son las normales del azar;"
+          " los 'calientes' y 'fríos' no son una señal.)")
+
+
+def cmd_backtest(_args=None):
+    df = cargar_historial("baloto")
+    res, azar = backtest(df, BALOTO)
+    print(f"\n=== BACKTEST: cada estrategia juega sorteo a sorteo sin ver el futuro ===")
+    print(f"Aciertos esperados por puro azar: {azar:.3f} de 5 números\n")
+    print(f"  {'estrategia':<28}{'aciertos medios':>16}{'±':>8}{'veces con 3+':>14}")
+    for r in sorted(res, key=lambda r: -r.aciertos_medios):
+        print(f"  {r.estrategia:<28}{r.aciertos_medios:>16.3f}{1.96 * r.error_estandar:>8.3f}{r.con_3_o_mas:>14.1f}")
+    print("\n  Todas quedan dentro del margen de error del azar: ninguna 'predice'.")
+
+
+def cmd_jugar(args):
+    if args.juego == "chance":
+        print("\nNúmeros de chance (todos tienen la misma probabilidad: 1 en 10.000 a 4 cifras):")
+        for n in generar_chance(args.n):
+            print(f"  {n}")
+        return
+    juego = JUEGOS_LOTO[args.juego]
+    ganadoras = None
+    if args.juego == "baloto":
+        ganadoras = {tuple(sorted(f)) for f in matriz(cargar_historial("baloto")).tolist()}
+    print(f"\nJugadas de {juego.nombre} (azar uniforme, filtrando combinaciones populares):")
+    for j in generar_loto(juego, args.n, ganadoras):
+        extra = f"  superbalota {j['extra']:02d}" if j["extra"] else ""
+        print("  " + " - ".join(f"{x:02d}" for x in j["numeros"]) + extra)
+    print(f"  Probabilidad de premio mayor de CADA jugada: {_uno_en(1 / juego.combinaciones)}."
+          "\n  Ventaja real: si ganas, es menos probable que compartas el acumulado.")
+
+
+def cmd_informe(_args=None):
+    cmd_probabilidades()
+    cmd_analizar()
+    cmd_backtest()
+    cmd_jugar(argparse.Namespace(juego="baloto", n=3))
+    cmd_jugar(argparse.Namespace(juego="chance", n=3))
+    print("\nJuega solo lo que estés dispuesto a perder. Línea de ayuda por juego"
+          " problemático: consulta coljuegos.gov.co.\n")
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(prog="python -m loteria", description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd")
+    sub.add_parser("probabilidades")
+    sub.add_parser("analizar")
+    sub.add_parser("backtest")
+    j = sub.add_parser("jugar")
+    j.add_argument("juego", choices=[*JUEGOS_LOTO, "chance"])
+    j.add_argument("-n", type=int, default=3)
+    c = sub.add_parser("chance")
+    c.add_argument("numero")
+    args = p.parse_args(argv)
+    {
+        None: cmd_informe, "probabilidades": cmd_probabilidades, "analizar": cmd_analizar,
+        "backtest": cmd_backtest, "jugar": cmd_jugar, "chance": cmd_chance,
+    }[args.cmd](args)
+
+
+if __name__ == "__main__":
+    main()

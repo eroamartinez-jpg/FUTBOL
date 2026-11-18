@@ -367,6 +367,51 @@ mientras el backtest no salga positivo.
 - Apuesta solo lo que puedas permitirte perder, y revisa que las apuestas
   sean legales donde vives.
 
+## Bot de loterías y chance de Colombia (`loteria/`)
+
+Analiza Baloto/Revancha, MiLoto, chance y loterías tradicionales. Parte de un
+hecho que el propio bot comprueba con datos reales: **los sorteos son
+aleatorios y ningún sistema puede aumentar la probabilidad de acertar.** Lo
+que sí hace es darte la información útil y honesta para jugar:
+
+```bash
+python -m loteria                    # informe completo
+python -m loteria probabilidades     # probabilidades exactas de cada juego
+python -m loteria analizar           # frecuencias + prueba de aleatoriedad (Baloto real)
+python -m loteria backtest           # ¿funcionan los números calientes/fríos/atrasados?
+python -m loteria jugar baloto -n 5  # 5 jugadas al azar, filtrando combinaciones populares
+python -m loteria jugar chance -n 3
+python -m loteria chance 0724        # probabilidad y retorno de cada modalidad
+```
+
+**Datos:** `data/loterias/baloto.csv`, 377 sorteos reales de Baloto
+(03/01/2024 - 16/11/2026), tomados de resultadobaloto.com.
+
+**Qué encontró:**
+
+- Prueba de aleatoriedad (Monte Carlo, 2.000 historias simuladas): p-valor
+  0,97 en los números principales y 0,55 en la superbalota. Que el 41 haya
+  salido 56 veces y el 23 solo 34 es la variación normal del azar.
+- Backtest sorteo a sorteo, sin mirar el futuro: "calientes", "fríos",
+  "atrasados", "más frecuentes" y "repetir el último" aciertan entre 0,56 y
+  0,62 números de 5, contra 0,581 del azar puro. Todas las diferencias están
+  dentro del margen de error.
+- Premio mayor de Baloto: 1 en 15.401.568 para **cualquier** combinación.
+- Chance: la modalidad con **mayor probabilidad de ganar es 1 cifra (1 en 10)**.
+  Las de 1 y 2 cifras y las combinadas devuelven ~50 % de lo apostado a largo
+  plazo, y 4 cifras directo devuelve 45 %. Ninguna devuelve más de lo que se
+  juega.
+
+**El generador** elige al azar de forma uniforme y descarta las
+combinaciones que juega mucha gente (todas ≤31 por cumpleaños, secuencias,
+progresiones, números agrupados, ganadoras anteriores). Eso no cambia la
+probabilidad de ganar, pero en juegos con acumulado compartido reduce la
+probabilidad de tener que repartirlo si aciertas. En el chance el premio es
+fijo, así que ahí todos los números valen lo mismo.
+
+Los pagos de chance (4.500x, 208x, 400x, 83x, 50x, 5x) son los que publican los
+operadores. Verifícalos con el tuyo en `loteria/juegos.py`.
+
 ## Cómo funciona
 
 1. **`futbol/data/`**: descarga (con cache local) los partidos y eventos de
