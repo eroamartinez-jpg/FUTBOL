@@ -14,6 +14,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import math
 
 from .analisis import backtest, cargar_historial, frecuencias, matriz, prueba_uniformidad
 from .generador import generar_chance, generar_loto
@@ -105,16 +106,37 @@ def cmd_loterias(_args=None):
     print("  Premio mayor (número + serie): 1 en 10.000 x número de series. El chance de cada lotería usa estas 4 cifras.")
 
 
+def _pct(p: float) -> str:
+    v = p * 100
+    if v >= 1:
+        txt = f"{v:.1f}"
+    elif v >= 0.01:
+        txt = f"{v:.3f}"
+    else:  # dos cifras significativas sin notación científica
+        txt = f"{v:.{1 - math.floor(math.log10(v))}f}"
+    return txt.replace(".", ",") + " %"
+
+
+def _prob_numero_4(numero: str, loteria: bool = False):
+    if loteria:
+        print(f"      premio mayor (número + serie): 1 en 10.000 x series emitidas (con 400 series: 1 en 4.000.000)")
+        print(f"      {'las 4 cifras, cualquier serie':<34}{_uno_en(1 / 10_000):>18}{_pct(1 / 10_000):>13}")
+    for f in chance_modalidades(numero):
+        if loteria and f["modalidad"] == "4 cifras directo":
+            continue
+        print(f"      {f['modalidad']:<34}{_uno_en(f["probabilidad"]):>18}{_pct(f["probabilidad"]):>13}"
+              f"   paga {_miles(f['paga_por_peso'])} por peso")
+
+
 def cmd_jugar(args):
-    if args.juego == "loteria":
-        print("\nNúmeros para cualquier lotería tradicional (cada uno: 1 en 10.000; la serie no cambia nada):")
-        for _ in range(args.n):
-            print(f"  {generar_numero()}")
-        return
-    if args.juego == "chance":
-        print("\nNúmeros de chance (todos tienen la misma probabilidad: 1 en 10.000 a 4 cifras):")
-        for n in generar_chance(args.n):
+    if args.juego in ("loteria", "chance"):
+        es_loteria = args.juego == "loteria"
+        titulo = ("Números para cualquier lotería tradicional (las filas de 3, 2 y 1 cifra son el chance de esa lotería)"
+                  if es_loteria else "Números de chance")
+        print(f"\n{titulo}:")
+        for n in (generar_numero() if es_loteria else generar_chance(1)[0] for _ in range(args.n)):
             print(f"  {n}")
+            _prob_numero_4(n, loteria=es_loteria)
         return
     juego = JUEGOS_LOTO[args.juego]
     ganadoras = None
@@ -124,8 +146,15 @@ def cmd_jugar(args):
     for j in generar_loto(juego, args.n, ganadoras):
         extra = f"  superbalota {j['extra']:02d}" if j["extra"] else ""
         print("  " + " - ".join(f"{x:02d}" for x in j["numeros"]) + extra)
-    print(f"  Probabilidad de premio mayor de CADA jugada: {_uno_en(1 / juego.combinaciones)}."
-          "\n  Ventaja real: si ganas, es menos probable que compartas el acumulado.")
+    print("\n  Probabilidad de cada jugada (es la misma para cualquier combinación):")
+    for cat, p in juego.tabla_categorias():
+        aciertos = int(cat[0])
+        if aciertos < 2:
+            continue
+        nombre = (f"{aciertos} números + superbalota" if cat.endswith("+1") else
+                  f"{aciertos} números sin superbalota" if juego.extra else f"{aciertos} números")
+        print(f"      {nombre:<34}{_uno_en(p):>18}{_pct(p):>13}")
+    print("  Ventaja real del filtro: si ganas, es menos probable que compartas el acumulado.")
 
 
 def cmd_informe(_args=None):
